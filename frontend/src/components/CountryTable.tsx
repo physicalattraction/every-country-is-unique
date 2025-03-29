@@ -1,10 +1,12 @@
-import { Country } from '@/services/countryService';
+import { CountryResponseDto } from '@/services/types';
 
 interface CountryTableProps {
-  countries: Country[];
+  countries: CountryResponseDto[];
+  onSelectCountry: (code: string) => void;
+  selectedCode?: string;
 }
 
-export function CountryTable({ countries }: CountryTableProps) {
+export function CountryTable({ countries, onSelectCountry, selectedCode }: CountryTableProps) {
   const speakCountryName = (name: string) => {
     const utterance = new SpeechSynthesisUtterance(name);
     utterance.rate = 0.95;
@@ -34,9 +36,14 @@ export function CountryTable({ countries }: CountryTableProps) {
           {countries.map((country, index) => (
             <tr 
               key={country.code} 
-              className="hover:bg-gray-50 cursor-pointer" 
-              onClick={() => speakCountryName(country.name)}
-              title="Click to hear pronunciation"
+              className={`hover:bg-gray-50 cursor-pointer ${
+                selectedCode === country.code ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => {
+                speakCountryName(country.name);
+                onSelectCountry(country.code);
+              }}
+              title="Click to view details and hear pronunciation"
             >
               <td className="w-[10%] px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
                 {index + 1}
