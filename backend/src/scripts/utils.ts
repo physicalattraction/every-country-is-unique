@@ -5,9 +5,9 @@ import * as path from 'path';
  * @returns The absolute path to the data directory
  */
 export function getDataPath(): string {
-  // Go up two levels from the scripts directory to reach the project root
+  // Go up two levels from the scripts directory to reach the backend root
   // current: backend/src/scripts/utils.ts
   // root: project_root/
-  const projectRoot = path.resolve(__dirname, '..', '..', '..');
+  const projectRoot = path.resolve(__dirname, '..', '..');
   return path.join(projectRoot, 'data');
 } 

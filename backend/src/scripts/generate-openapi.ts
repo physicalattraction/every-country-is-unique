@@ -16,14 +16,14 @@ async function generateOpenApiSpec() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Ensure the docs directory exists in data
-  const docsDir = path.join(getDataPath(), 'docs');
-  if (!fs.existsSync(docsDir)) {
-    fs.mkdirSync(docsDir, { recursive: true });
+  // Ensure the data directory exists in data
+  const dataDir = getDataPath();
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  // Write the OpenAPI spec to the docs directory
-  const openApiPath = path.join(docsDir, 'openapi.json');
+  // Write the OpenAPI spec to the data directory
+  const openApiPath = path.join(dataDir, 'openapi.json');
   fs.writeFileSync(openApiPath, JSON.stringify(document, null, 2));
 
   await app.close();
