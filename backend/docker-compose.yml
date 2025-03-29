@@ -1,0 +1,33 @@
+name: every-country-is-unique
+version: '3.8'
+
+services:
+  api:
+    container_name: api-every-country-is-unique
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: postgres-every-country-is-unique
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: every_country_is_unique
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data: 

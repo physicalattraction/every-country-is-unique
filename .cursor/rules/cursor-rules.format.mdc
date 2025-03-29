@@ -1,0 +1,127 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Cursor Rules Format
+globs: .cursor/rules/*.mdc
+alwaysApply: true
+---
+
+# Cursor Rules Format
+
+Rules for writing and formatting Cursor rules.
+
+<rule>
+name: cursor_rules_format
+description: Standards for writing and formatting Cursor rules
+filters:
+  # Match any .mdc files in the .cursor/rules directory
+  - type: file_extension
+    pattern: "\\.mdc$"
+  # Match files that look like Cursor rules
+  - type: content
+    pattern: "(?s)<rule>.*?</rule>"
+  # Match file creation events
+  - type: event
+    pattern: "file_create"
+
+actions:
+  - type: suggest
+    message: |
+      When creating Cursor rules:
+
+      1. File Header:
+         ```
+         ---
+         description: Rule Description
+         globs: pattern1, pattern2
+         ---
+         # Rule Title
+         ```
+
+      2. Rule Structure:
+         ```yaml
+         <rule>
+         name: rule_name
+         description: Detailed description of the rule
+         filters:
+           - type: filter_type
+             pattern: "regex_pattern"
+         actions:
+           - type: action_type
+             message: |
+               Detailed message with:
+               - Bullet points
+               - Code blocks
+               - Examples
+         examples:
+           - input: |
+               Example input
+             output: "Expected output"
+         metadata:
+           priority: high|medium|low
+           version: x.y.z
+         </rule>
+         ```
+
+      3. Required Components:
+         - YAML frontmatter with description and globs
+         - Markdown title
+         - Rule tag with name and description
+         - At least one filter
+         - At least one action
+         - Examples showing good/bad cases
+         - Metadata with priority and version
+
+      4. Best Practices:
+         - Use clear, descriptive names
+         - Include comprehensive examples
+         - Use code blocks for formatting
+         - Keep descriptions concise but informative
+         - Use bullet points for readability
+         - Include both positive and negative examples
+
+      5. File Naming:
+         - Use kebab-case for filenames
+         - Make names descriptive of the rule's purpose
+         - Always use .mdc extension
+
+examples:
+  - input: |
+      # Bad: Missing components
+      <rule>
+      name: bad_rule
+      </rule>
+
+      # Good: Complete rule
+      ---
+      description: Example Rule
+      globs: *.py
+      ---
+      # Example Rule
+
+      <rule>
+      name: good_rule
+      description: A well-formatted rule
+      filters:
+        - type: file_extension
+          pattern: "\\.py$"
+      actions:
+        - type: suggest
+          message: |
+            This is a good example
+      examples:
+        - input: "bad code"
+          output: "good code"
+      metadata:
+        priority: high
+        version: 1.0
+      </rule>
+    output: "Correctly formatted rule"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

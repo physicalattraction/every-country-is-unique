@@ -1,0 +1,27 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+{
+	"name": "Every Country Is Unique Dev Environment",
+	"dockerComposeFile": "../backend/docker-compose.yml",
+	"service": "api",
+	"workspaceFolder": "/usr/src/app",
+
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+	},
+
+	"forwardPorts": [3001, 5432],
+
+	"postCreateCommand": "npm install",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			]
+		}
+	},
+
+	"remoteUser": "node"
+}
