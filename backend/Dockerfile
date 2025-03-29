@@ -10,6 +10,6 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 3001
+EXPOSE ${PORT:-3001}
 
-CMD ["npm", "run", "start:dev"] 
+CMD ["sh", "-c", "npm run ${NODE_ENV:-development}"] 

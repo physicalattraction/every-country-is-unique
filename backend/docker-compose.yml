@@ -8,25 +8,22 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "${PORT:-3001}:3001"
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DB_HOST=postgres
+    env_file:
+      - ./environment/.env.${NODE_ENV:-development}
     depends_on:
       - postgres
 
   postgres:
     container_name: postgres-every-country-is-unique
     image: postgres:latest
-    environment:
-      POSTGRES_DB: every_country_is_unique
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    env_file:
+      - ./environment/.env.${NODE_ENV:-development}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

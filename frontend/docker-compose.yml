@@ -8,12 +8,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
       - /usr/src/app/.next
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-    command: npm run dev 
+    env_file:
+      - ./environment/.env.${NODE_ENV:-development}
+    command: npm run ${NODE_ENV:-development} 
