@@ -1,24 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { In, Repository } from 'typeorm';
+import { getDataPath } from '../../utils/path.utils';
 import { Country } from '../entities/country.entity';
 import { Currency } from '../entities/currency.entity';
 import { Language } from '../entities/language.entity';
-import * as fs from 'fs';
-import * as path from 'path';
 
-// Helper function to get the project root directory
-const getProjectRoot = () => {
-  // Go up four levels from the current file to reach the project root
-  // current: backend/src/country/services/country.seed.ts
-  // root: project_root/
-  return path.resolve(__dirname, '../../../..');
-};
-
-// Helper function to get the data directory path
-const getDataPath = () => {
-  return path.join(getProjectRoot(), 'data');
-};
 
 interface RestCountry {
   cca3: string;
@@ -45,7 +34,7 @@ export class CountrySeedService {
     private currencyRepository: Repository<Currency>,
     @InjectRepository(Language)
     private languageRepository: Repository<Language>,
-  ) {}
+  ) { }
 
   async seed() {
     const hardcodedCountries = [
@@ -311,18 +300,18 @@ export class CountrySeedService {
     // Create countries with their relationships
     for (const hardcodedCountry of hardcodedCountries) {
       const restCountryData = restCountriesMap.get(hardcodedCountry.code);
-      
+
       const country = {
         ...hardcodedCountry,
-        currencies: restCountryData?.currencies 
+        currencies: restCountryData?.currencies
           ? await this.currencyRepository.findBy({
-              code: In(Object.keys(restCountryData.currencies))
-            })
+            code: In(Object.keys(restCountryData.currencies))
+          })
           : [],
         languages: restCountryData?.languages
           ? await this.languageRepository.findBy({
-              code: In(Object.keys(restCountryData.languages))
-            })
+            code: In(Object.keys(restCountryData.languages))
+          })
           : []
       };
 

@@ -3,7 +3,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from '../app.module';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getDataPath } from './utils';
+import { getDataPath } from '../utils/path.utils';
 
 async function generateOpenApiSpec() {
   const app = await NestFactory.create(AppModule);
