@@ -1,0 +1,163 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/countries": {
+      "get": {
+        "operationId": "CountryController_findAll",
+        "summary": "Get all countries",
+        "description": "Retrieves a list of all countries, optionally filtered by name",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search term to filter countries by name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of countries retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CountryResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "countries"
+        ]
+      }
+    },
+    "/countries/{code}": {
+      "get": {
+        "operationId": "CountryController_findOne",
+        "summary": "Get country by code",
+        "description": "Retrieves detailed information about a specific country",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "description": "The three-letter country code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Country details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountryResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Country not found"
+          }
+        },
+        "tags": [
+          "countries"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Every Country Is Unique API",
+    "description": "The API for the Every Country Is Unique application",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CurrencyDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The three-letter currency code"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the currency"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "The currency symbol"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "LanguageDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The three-letter language code"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the language"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "CountryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The three-letter country code"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the country"
+          },
+          "flag": {
+            "type": "string",
+            "description": "The flag emoji of the country"
+          },
+          "currencies": {
+            "description": "The currencies used in the country",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyDto"
+            }
+          },
+          "languages": {
+            "description": "The languages spoken in the country",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "flag"
+        ]
+      }
+    }
+  }
+}
