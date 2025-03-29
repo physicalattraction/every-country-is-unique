@@ -15,7 +15,10 @@ services:
     env_file:
       - ./environment/.env.${NODE_ENV:-development}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
 
   postgres:
     container_name: postgres-every-country-is-unique
@@ -26,6 +29,17 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  backend-network:
+    driver: bridge
 
 volumes:
   postgres_data: 
