@@ -1,0 +1,63 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Framework and Directory Structure Rules
+globs: "**/*.{ts,tsx,js,jsx}"
+alwaysApply: true
+---
+
+# Framework and Directory Structure Rules
+
+<rule>
+name: framework_location
+description: Enforces framework-specific code to be in their respective directories
+filters:
+  - type: file_extension
+    pattern: "\\.(ts|tsx|js|jsx)$"
+  - type: event
+    pattern: "file_create"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^(?!frontend/).*react|next"
+        message: "Frontend code (React/Next.js) must be placed in the frontend directory"
+      - pattern: "^(?!backend/).*nest|@nestjs"
+        message: "Backend code (NestJS) must be placed in the backend directory"
+
+  - type: suggest
+    message: |
+      Code organization rules:
+      
+      1. Frontend Code:
+         - Must use Next.js framework
+         - Must be placed in the frontend/ directory
+         - Includes React components, pages, and frontend-specific utilities
+      
+      2. Backend Code:
+         - Must use NestJS framework
+         - Must be placed in the backend/ directory
+         - Includes controllers, services, and backend-specific utilities
+
+examples:
+  - input: |
+      // Bad: Frontend code in root
+      src/components/Table.tsx
+      
+      // Good: Frontend code in frontend directory
+      frontend/components/Table.tsx
+      
+      // Bad: Backend code in root
+      src/controllers/countries.controller.ts
+      
+      // Good: Backend code in backend directory
+      backend/src/controllers/countries.controller.ts
+    output: "Correctly placed framework-specific code"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule>
