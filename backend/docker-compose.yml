@@ -1,4 +1,4 @@
-name: every-country-is-unique
+name: every-country-is-unique-backend
 version: '3.8'
 
 services:
