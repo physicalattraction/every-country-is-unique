@@ -5,6 +5,12 @@ interface CountryTableProps {
 }
 
 export function CountryTable({ countries }: CountryTableProps) {
+  const speakCountryName = (name: string) => {
+    const utterance = new SpeechSynthesisUtterance(name);
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="overflow-x-auto shadow-md rounded-lg">
       <table className="min-w-full divide-y divide-gray-200">
@@ -26,7 +32,12 @@ export function CountryTable({ countries }: CountryTableProps) {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {countries.map((country, index) => (
-            <tr key={country.code} className="hover:bg-gray-50">
+            <tr 
+              key={country.code} 
+              className="hover:bg-gray-50 cursor-pointer" 
+              onClick={() => speakCountryName(country.name)}
+              title="Click to hear pronunciation"
+            >
               <td className="w-[10%] px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
                 {index + 1}
               </td>
