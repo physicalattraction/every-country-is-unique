@@ -1,17 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Country } from '../entities/country.entity';
+import { Currency } from '../entities/currency.entity';
+import { Language } from '../entities/language.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Helper function to get the project root directory
+const getProjectRoot = () => {
+  // Go up four levels from the current file to reach the project root
+  // current: backend/src/country/services/country.seed.ts
+  // root: project_root/
+  return path.resolve(__dirname, '../../../..');
+};
+
+// Helper function to get the data directory path
+const getDataPath = () => {
+  return path.join(getProjectRoot(), 'data');
+};
+
+interface RestCountry {
+  cca3: string;
+  name: {
+    common: string;
+  };
+  currencies?: {
+    [code: string]: {
+      name: string;
+      symbol?: string;
+    };
+  };
+  languages?: {
+    [code: string]: string;
+  };
+}
 
 @Injectable()
 export class CountrySeedService {
   constructor(
     @InjectRepository(Country)
     private countryRepository: Repository<Country>,
+    @InjectRepository(Currency)
+    private currencyRepository: Repository<Currency>,
+    @InjectRepository(Language)
+    private languageRepository: Repository<Language>,
   ) {}
 
   async seed() {
-    const countries = [
+    const hardcodedCountries = [
       { code: 'AFG', name: 'Afghanistan', flag: '🇦🇫' },
       { code: 'ALB', name: 'Albania', flag: '🇦🇱' },
       { code: 'DZA', name: 'Algeria', flag: '🇩🇿' },
@@ -207,23 +244,102 @@ export class CountrySeedService {
       { code: 'ZWE', name: 'Zimbabwe', flag: '🇿🇼' }
     ];
 
-    // Get all existing country codes
-    const existingCountries = await this.countryRepository.find({
-      select: { code: true }
+    // Read the rest_countries.json file using the data directory path
+    const filePath = path.join(getDataPath(), 'rest_countries.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    const restCountries = JSON.parse(rawData) as RestCountry[];
+
+    // Extract unique currencies and languages
+    const uniqueCurrencies = new Map<string, { name: string; symbol: string }>();
+    const uniqueLanguages = new Map<string, string>();
+
+    restCountries.forEach((country: RestCountry) => {
+      // Extract currencies
+      if (country.currencies) {
+        Object.entries(country.currencies).forEach(([code, details]) => {
+          if (!uniqueCurrencies.has(code)) {
+            uniqueCurrencies.set(code, {
+              name: details.name,
+              symbol: details.symbol || ''
+            });
+          }
+        });
+      }
+
+      // Extract languages
+      if (country.languages) {
+        Object.entries(country.languages).forEach(([code, name]) => {
+          if (!uniqueLanguages.has(code)) {
+            uniqueLanguages.set(code, name);
+          }
+        });
+      }
     });
-    const existingCodes = new Set(existingCountries.map(c => c.code));
 
-    // Filter out countries that already exist
-    const countriesToInsert = countries.filter(country => !existingCodes.has(country.code));
+    // Create currencies in bulk
+    const currenciesToCreate = Array.from(uniqueCurrencies.entries()).map(([code, details]) => ({
+      code,
+      name: details.name,
+      symbol: details.symbol
+    }));
 
-    // Bulk insert new countries if any exist
-    if (countriesToInsert.length > 0) {
+    await this.currencyRepository
+      .createQueryBuilder()
+      .insert()
+      .values(currenciesToCreate)
+      .orIgnore()
+      .execute();
+
+    // Create languages in bulk
+    const languagesToCreate = Array.from(uniqueLanguages.entries()).map(([code, name]) => ({
+      code,
+      name
+    }));
+
+    await this.languageRepository
+      .createQueryBuilder()
+      .insert()
+      .values(languagesToCreate)
+      .orIgnore()
+      .execute();
+
+    // Create a map of country codes to their data from rest_countries.json
+    const restCountriesMap = new Map(
+      restCountries.map((country) => [country.cca3, country])
+    );
+
+    // Create countries with their relationships
+    for (const hardcodedCountry of hardcodedCountries) {
+      const restCountryData = restCountriesMap.get(hardcodedCountry.code);
+      
+      const country = {
+        ...hardcodedCountry,
+        currencies: restCountryData?.currencies 
+          ? await this.currencyRepository.findBy({
+              code: In(Object.keys(restCountryData.currencies))
+            })
+          : [],
+        languages: restCountryData?.languages
+          ? await this.languageRepository.findBy({
+              code: In(Object.keys(restCountryData.languages))
+            })
+          : []
+      };
+
       await this.countryRepository
         .createQueryBuilder()
         .insert()
-        .into(Country)
-        .values(countriesToInsert)
+        .values(country)
+        .orUpdate({
+          conflict_target: ['code'],
+          overwrite: ['name', 'flag']
+        })
         .execute();
+
+      // Update relationships
+      if (country.currencies.length > 0 || country.languages.length > 0) {
+        await this.countryRepository.save(country);
+      }
     }
   }
 } 

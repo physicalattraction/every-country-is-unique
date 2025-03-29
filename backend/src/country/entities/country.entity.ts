@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Currency } from './currency.entity';
+import { Language } from './language.entity';
 
 @Entity()
 export class Country {
@@ -10,4 +12,32 @@ export class Country {
 
   @Column()
   flag: string;
+
+  @ManyToMany(() => Currency)
+  @JoinTable({
+    name: 'country_currencies',
+    joinColumn: {
+      name: 'country_code',
+      referencedColumnName: 'code'
+    },
+    inverseJoinColumn: {
+      name: 'currency_code',
+      referencedColumnName: 'code'
+    }
+  })
+  currencies: Currency[];
+
+  @ManyToMany(() => Language)
+  @JoinTable({
+    name: 'country_languages',
+    joinColumn: {
+      name: 'country_code',
+      referencedColumnName: 'code'
+    },
+    inverseJoinColumn: {
+      name: 'language_code',
+      referencedColumnName: 'code'
+    }
+  })
+  languages: Language[];
 } 

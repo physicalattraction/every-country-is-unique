@@ -27,7 +27,11 @@ export class CountryService {
   }
 
   async findOne(code: string): Promise<CountryResponseDto> {
-    const country = await this.countryRepository.findOneBy({ code });
+    const country = await this.countryRepository.findOne({
+      where: { code },
+      relations: ['currencies', 'languages']
+    });
+    
     if (!country) {
       throw new NotFoundException(`Country with code ${code} not found`);
     }
