@@ -10,16 +10,15 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-8 items-start">
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-800">Test Your Global Knowledge</h2>
+            <h2 className="text-3xl font-bold text-gray-800">Every Country Is Unique</h2>
             <p className="text-lg text-gray-600">
-              Embark on an exciting journey of discovery through our unique country-guessing puzzles. 
-              Each challenge presents you with three or more carefully crafted clues that capture the 
-              essence of a nation - from its cultural landmarks to hidden gems.
+              Welcome to our work in progress! We&apos;re building an exciting platform for exploring 
+              the world&apos;s countries. Currently, you can browse our collection of countries and 
+              learn about their flags, currencies, and languages.
             </p>
             <p className="text-lg text-gray-600">
-              Whether you&apos;re a seasoned traveler or an aspiring globetrotter, put your knowledge 
-              to the test and uncover fascinating facts about countries around the world. How many 
-              can you guess correctly?
+              Coming soon: Interactive country-guessing puzzles that will challenge your global knowledge 
+              and help you discover fascinating facts about nations around the world. Stay tuned for updates!
             </p>
           </div>
           <div className="flex justify-center">

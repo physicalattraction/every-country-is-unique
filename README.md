@@ -62,6 +62,10 @@ The applications will be available at:
 
 For detailed instructions on deploying the application to production for the first time, including initial server setup, SSL certification, and nginx configuration, see [First-Time Deployment Guide](first-deployment.md).
 
+### Regular Deployment Guide
+
+For instructions on deploying updates to the application after initial deployment, see [Regular Deployment Guide](regular-deployment.md).
+
 ### Local Development
 
 1. Backend Setup:
