@@ -58,6 +58,10 @@ The applications will be available at:
 - Backend API: http://localhost:3001
 - API Documentation: http://localhost:3001/docs
 
+### First-Time Deployment Guide
+
+For detailed instructions on deploying the application to production for the first time, including initial server setup, SSL certification, and nginx configuration, see [First-Time Deployment Guide](first-deployment.md).
+
 ### Local Development
 
 1. Backend Setup:
