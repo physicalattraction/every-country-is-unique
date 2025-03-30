@@ -2,7 +2,7 @@ import { OptimizedImage } from '@/components/Image';
 import { Navbar } from '@/components/Navbar';
 
 interface HeaderProps {
-  currentPage: 'home' | 'countries';
+  currentPage: 'home' | 'countries' | 'quiz';
 }
 
 export function Header({ currentPage }: HeaderProps) {

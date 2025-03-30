@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 interface NavbarProps {
-  currentPage: 'home' | 'countries';
+  currentPage: 'home' | 'countries' | 'quiz';
 }
 
 export function Navbar({ currentPage }: NavbarProps) {
@@ -29,6 +29,16 @@ export function Navbar({ currentPage }: NavbarProps) {
               }`}
             >
               Countries
+            </Link>
+            <Link 
+              href="/quiz" 
+              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${
+                currentPage === 'quiz' 
+                  ? 'bg-white bg-opacity-50 text-black' 
+                  : 'bg-black bg-opacity-50 text-white hover:bg-opacity-60'
+              }`}
+            >
+              Quiz
             </Link>
           </div>
         </div>
