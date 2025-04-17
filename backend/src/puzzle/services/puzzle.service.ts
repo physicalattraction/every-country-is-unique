@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Clue, IClue } from '../entities/clue.entity';
-import { Puzzle } from   '../entities/puzzle.entity';
+import { Puzzle } from '../entities/puzzle.entity';
 
 @Injectable()
 export class PuzzleService {
@@ -15,7 +15,7 @@ export class PuzzleService {
         private countryRepository: Repository<Country>,
         @InjectRepository(Clue)
         private clueRepository: Repository<Clue>,
-    ) {}
+    ) { }
 
     async findOne(id: number): Promise<Puzzle> {
         return this.puzzleRepository.findOne({
