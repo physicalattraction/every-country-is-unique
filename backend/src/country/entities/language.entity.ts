@@ -1,10 +1,10 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Language {
-  @PrimaryColumn({ length: 3 })
-  code: string;
+    @PrimaryColumn({ length: 3 })
+    code: string;
 
-  @Column()
-  name: string;
-} 
+    @Column()
+    name: string;
+}

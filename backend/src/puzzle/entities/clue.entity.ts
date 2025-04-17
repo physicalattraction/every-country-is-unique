@@ -1,26 +1,28 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+
+import { Puzzle } from './puzzle.entity';
 
 export interface IClue {
-  source: string;
-  key: string;
-  value: string;
+    source: string;
+    key: string;
+    value: string;
 }
 
 @Entity()
 export class Clue {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column('text')
-  source: string;
+    @Column('text')
+    source: string;
 
-  @Column('text')
-  key: string;
+    @Column('text')
+    key: string;
 
-  @Column()
-  value: string;
+    @Column()
+    value: string;
 
-  @ManyToOne('Puzzle', 'clues')
-  @JoinColumn({ name: 'puzzle_id' })
-  puzzle: any;
-} 
+    @ManyToOne(() => Puzzle, puzzle => puzzle.clues)
+    @JoinColumn({ name: 'puzzle_id' })
+    puzzle: Puzzle;
+}

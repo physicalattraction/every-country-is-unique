@@ -1,34 +1,35 @@
 import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from '../app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { AppModule } from '../app.module';
 import { getDataPath } from '../utils/path.utils';
 
 async function generateOpenApiSpec() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-  const config = new DocumentBuilder()
-    .setTitle('Every Country Is Unique API')
-    .setDescription('The API for the Every Country Is Unique application')
-    .setVersion('1.0')
-    .build();
+    const config = new DocumentBuilder()
+        .setTitle('Every Country Is Unique API')
+        .setDescription('The API for the Every Country Is Unique application')
+        .setVersion('1.0')
+        .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, config);
 
-  // Ensure the data directory exists in data
-  const dataDir = getDataPath();
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+    // Ensure the data directory exists in data
+    const dataDir = getDataPath();
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
 
-  // Write the OpenAPI spec to the data directory
-  const openApiPath = path.join(dataDir, 'openapi.json');
-  fs.writeFileSync(openApiPath, JSON.stringify(document, null, 2));
+    // Write the OpenAPI spec to the data directory
+    const openApiPath = path.join(dataDir, 'openapi.json');
+    fs.writeFileSync(openApiPath, JSON.stringify(document, null, 2));
 
-  await app.close();
-  console.log('OpenAPI specification has been generated in:');
-  console.log(`- ${openApiPath}`);
+    await app.close();
+    // eslint-disable-next-line no-console
+    console.info(`OpenAPI specification has been generated in: ${openApiPath}`);
 }
 
-generateOpenApiSpec(); 
+generateOpenApiSpec();

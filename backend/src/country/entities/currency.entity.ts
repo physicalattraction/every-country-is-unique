@@ -1,13 +1,13 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Currency {
-  @PrimaryColumn({ length: 3 })
-  code: string;
+    @PrimaryColumn({ length: 3 })
+    code: string;
 
-  @Column()
-  name: string;
+    @Column()
+    name: string;
 
-  @Column()
-  symbol: string;
-} 
+    @Column()
+    symbol: string;
+}

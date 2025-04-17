@@ -1,0 +1,237 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Code Quality Standards and Auto-formatting Rules
+globs: "**/*.{ts,tsx,js,jsx}"
+alwaysApply: true
+---
+
+# Code Quality Standards
+
+<rule>
+name: code_quality_standards
+description: Enforces code quality standards including ESLint, Prettier, and import sorting
+filters:
+  - type: file_extension
+    pattern: "\\.(ts|tsx|js|jsx)$"
+  - type: event
+    pattern: "file_create|file_edit"
+
+actions:
+  - type: suggest
+    message: |
+      Code Quality Standards:
+
+      1. ESLint Rules:
+         - Run `npm run lint:fix` to fix linting issues
+         - Use `// eslint-disable-next-line rule-name` to disable specific rules
+         - Document why rules are being disabled
+
+      2. Prettier Formatting:
+         - Run `npm run format` to format all files
+         - Use Shift+Alt+F in VSCode to format current file
+         - Ensure consistent line endings and indentation
+
+      3. Import Sorting:
+         - Imports are automatically sorted on save
+         - Follow the order: built-in → external → internal → parent/sibling → index
+         - Keep imports organized and grouped
+
+      4. EditorConfig:
+         - Maintain consistent coding styles across editors
+         - Follow the settings in .editorconfig
+
+      5. Before Committing:
+         - Run `npm run lint:fix`
+         - Run `npm run format`
+         - Run `npm run format:check`
+
+      6. NestJS Code Style:
+         - Use dependency injection in constructors
+         - Follow the module-service-controller pattern
+         - Use proper decorators (@Injectable, @Controller, etc.)
+         - Keep services focused and single-responsibility
+         - Use proper error handling with HttpException
+
+      7. TypeScript Best Practices:
+         - Use strict type checking
+         - Avoid 'any' type
+         - Use interfaces for DTOs
+         - Use proper access modifiers (public/private)
+         - Use readonly for immutable properties
+
+      8. Explicit Formatting Rules:
+         - Use 4 spaces for indentation
+         - Use single quotes for strings
+         - Use semicolons at the end of statements
+         - Use trailing commas in multiline objects/arrays
+         - Maximum line length: 120 characters
+         - No unused variables (except those prefixed with _)
+         - No console statements (except warn/error)
+         - No debugger statements
+         - No duplicate imports
+         - Prefer const over let
+         - Arrow functions should have parentheses around parameters
+         - Use proper spacing around operators
+         - Use proper spacing in object literals
+         - Use proper spacing in function parameters
+         - Use proper spacing in type annotations
+
+examples:
+  - input: |
+      // Bad: Unsorted imports
+      import { Service } from '@nestjs/common';
+      import { Entity, Column } from 'typeorm';
+      import { AppService } from './app.service';
+      import * as fs from 'fs';
+
+      // Good: Sorted imports
+      import * as fs from 'fs';
+      import { Service } from '@nestjs/common';
+      import { Entity, Column } from 'typeorm';
+      import { AppService } from './app.service';
+    output: "Correctly sorted imports"
+
+  - input: |
+      // Bad: Inconsistent formatting
+      const myFunction = (param1,param2)=>{
+      return param1+param2;
+      }
+
+      // Good: Properly formatted
+      const myFunction = (param1, param2) => {
+        return param1 + param2;
+      }
+    output: "Correctly formatted code"
+
+  - input: |
+      // Bad: Poor NestJS service structure
+      @Injectable()
+      export class MyService {
+        private data: any;
+        
+        constructor() {
+          this.data = {};
+        }
+        
+        async getData() {
+          return this.data;
+        }
+      }
+
+      // Good: Proper NestJS service
+      @Injectable()
+      export class MyService {
+        private readonly data: Record<string, unknown>;
+        
+        constructor(
+          @InjectRepository(MyEntity)
+          private readonly repository: Repository<MyEntity>,
+        ) {
+          this.data = {};
+        }
+        
+        async getData(): Promise<MyEntity[]> {
+          try {
+            return await this.repository.find();
+          } catch (error) {
+            throw new HttpException(
+              'Failed to fetch data',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        }
+      }
+    output: "Proper NestJS service structure"
+
+  - input: |
+      // Bad: Poor DTO structure
+      export class CreateUserDto {
+        name: string;
+        age: number;
+      }
+
+      // Good: Proper DTO with validation
+      export class CreateUserDto {
+        @IsString()
+        @IsNotEmpty()
+        readonly name: string;
+
+        @IsNumber()
+        @Min(18)
+        readonly age: number;
+      }
+    output: "Proper DTO structure with validation"
+
+  - input: |
+      // Bad: Poor error handling
+      async function getData() {
+        const data = await fetchData();
+        return data;
+      }
+
+      // Good: Proper error handling
+      async function getData(): Promise<Data> {
+        try {
+          const data = await fetchData();
+          return data;
+        } catch (error) {
+          throw new HttpException(
+            'Failed to fetch data',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+    output: "Proper error handling"
+
+  - input: |
+      // Bad: Poor formatting
+      const obj={prop1:'value1',prop2:'value2'};
+      function fn(param1:number,param2:number):number{
+        return param1+param2;
+      }
+
+      // Good: Proper formatting
+      const obj = {
+        prop1: 'value1',
+        prop2: 'value2',
+      };
+      
+      function fn(param1: number, param2: number): number {
+        return param1 + param2;
+      }
+    output: "Proper spacing and formatting"
+
+  - input: |
+      // Bad: Poor type usage
+      let data: any;
+      const result = process(data);
+
+      // Good: Proper type usage
+      interface Data {
+        id: number;
+        name: string;
+      }
+      
+      const data: Data = { id: 1, name: 'test' };
+      const result: Data = process(data);
+    output: "Proper type usage"
+
+  - input: |
+      // Bad: Poor variable declarations
+      let count = 0;
+      var total = 0;
+      let _unused = 'value';
+
+      // Good: Proper variable declarations
+      const count = 0;
+      const total = 0;
+      const _unused = 'value';
+    output: "Proper variable declarations"
+
+metadata:
+  priority: high
+  ver
