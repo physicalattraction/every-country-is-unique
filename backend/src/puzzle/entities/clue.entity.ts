@@ -20,8 +20,7 @@ export class Clue {
   @Column()
   value: string;
 
-  @ManyToOne('Puzzle')
+  @ManyToOne('Puzzle', 'clues')
   @JoinColumn({ name: 'puzzle_id' })
-  // Using 'any' type to avoid circular dependency with Puzzle entity
   puzzle: any;
 } 

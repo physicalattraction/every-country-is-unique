@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Puzzle } from '../entities/puzzle.entity';
-import { IClue } from '../entities/clue.entity';
 import { Country } from '../../country/entities/country.entity';
-import { ClueService } from './clue.service';
+import { IClue } from '../entities/clue.entity';
+import { Clue } from '../entities/clue.entity';
 
 @Injectable()
 export class PuzzleService {
@@ -13,25 +13,35 @@ export class PuzzleService {
     private puzzleRepository: Repository<Puzzle>,
     @InjectRepository(Country)
     private countryRepository: Repository<Country>,
-    private clueService: ClueService,
+    @InjectRepository(Clue)
+    private clueRepository: Repository<Clue>,
   ) {}
 
-  async findOneWithClues(id: number): Promise<Puzzle> {
+  async findOne(id: number): Promise<Puzzle> {
     return this.puzzleRepository.findOne({
       where: { id },
-      relations: ['clues', 'country']
+      relations: ['country', 'clues']
     });
   }
 
-  async createPuzzleWithClues(countryCode: string, clues: IClue[]): Promise<Puzzle> {
+  async create(countryCode: string, clues: IClue[]): Promise<Puzzle> {
+    if (!clues?.length) {
+      throw new BadRequestException('A puzzle must have at least one clue');
+    }
+
     const country = await this.countryRepository.findOne({ where: { code: countryCode } });
     if (!country) {
       throw new Error(`Country with code ${countryCode} not found`);
     }
 
     const puzzle = await this.puzzleRepository.save({ country });
-    await this.clueService.createClues(clues, puzzle);
+    
+    const clueEntities = clues.map(clue => this.clueRepository.create({
+      ...clue,
+      puzzle
+    }));
+    await this.clueRepository.save(clueEntities);
 
-    return puzzle;
+    return this.findOne(puzzle.id);
   }
 } 
