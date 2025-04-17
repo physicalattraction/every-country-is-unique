@@ -29,7 +29,7 @@
     "migration:revert": "npm run typeorm -- migration:revert -d src/data-source.ts",
     "validate": "npm run lint:check && npm run format:check",
     "prepare": "husky install",
-    "pre-commit": "lint-staged"
+    "pre-commit": "npm run fix:imports &&npm run lint && npm run format"
   },
   "keywords": [],
   "author": "erwinrossen@duck.com",
