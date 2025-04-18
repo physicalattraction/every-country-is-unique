@@ -1,18 +1,24 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TypeOrmModule, getDataSourceToken } from '@nestjs/typeorm';
+import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import * as request from 'supertest';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Currency } from '../../country/entities/currency.entity';
 import { Language } from '../../country/entities/language.entity';
+import { QueryCounter } from '../../utils/query-counter';
 import { CreatePuzzleDto } from '../dto/create-puzzle.dto';
 import { Clue } from '../entities/clue.entity';
 import { Puzzle } from '../entities/puzzle.entity';
 import { PuzzleModule } from '../puzzle.module';
 import { PuzzleService } from '../services/puzzle.service';
-import { TestRepositoryContext, createTestContext, createTestCountry, createTestPuzzle } from '../test/puzzle.test-helpers';
+import {
+    createTestContext,
+    createTestCountry,
+    createTestPuzzle,
+    TestRepositoryContext,
+} from '../test/puzzle.test-helpers';
 import { PuzzleController } from './puzzle.controller';
 
 describe('PuzzleController', () => {
@@ -20,8 +26,9 @@ describe('PuzzleController', () => {
     let context: TestRepositoryContext;
     let controller: PuzzleController;
     let puzzleRepository: Repository<Puzzle>;
-    let clueRepository: Repository<Clue>;
     let countryRepository: Repository<Country>;
+    let dataSource: DataSource;
+    let queryCounter: QueryCounter;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -32,7 +39,6 @@ describe('PuzzleController', () => {
                     dropSchema: true,
                     entities: [Puzzle, Clue, Country, Currency, Language],
                     synchronize: true,
-                    logging: false,
                 }),
                 PuzzleModule,
                 TypeOrmModule.forFeature([Puzzle, Clue, Country]),
@@ -69,8 +75,9 @@ describe('PuzzleController', () => {
 
         controller = module.get<PuzzleController>(PuzzleController);
         puzzleRepository = module.get<Repository<Puzzle>>(Puzzle);
-        clueRepository = module.get<Repository<Clue>>(Clue);
         countryRepository = module.get<Repository<Country>>(Country);
+        dataSource = module.get<DataSource>(getDataSourceToken());
+        queryCounter = new QueryCounter(dataSource);
     });
 
     afterEach(async () => {
@@ -83,9 +90,7 @@ describe('PuzzleController', () => {
             const puzzle = await createTestPuzzle(context);
 
             // Act
-            const response = await request(app.getHttpServer())
-                .get(`/puzzles/${puzzle.id}`)
-                .expect(200);
+            const response = await request(app.getHttpServer()).get(`/puzzles/${puzzle.id}`).expect(200);
 
             // Assert
             expect(response.body).toEqual({
@@ -111,9 +116,7 @@ describe('PuzzleController', () => {
         });
 
         it('should return 404 for non-existent puzzle', async () => {
-            await request(app.getHttpServer())
-                .get('/puzzles/999')
-                .expect(404);
+            await request(app.getHttpServer()).get('/puzzles/999').expect(404);
         });
     });
 
@@ -123,7 +126,7 @@ describe('PuzzleController', () => {
             await createTestPuzzle(context, { skipClues: true });
 
             const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
+                country_code: 'QAT',
                 clues: [
                     {
                         source: 'name',
@@ -139,10 +142,7 @@ describe('PuzzleController', () => {
             };
 
             // Act
-            const response = await request(app.getHttpServer())
-                .post('/puzzles')
-                .send(createPuzzleDto)
-                .expect(201);
+            const response = await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(201);
 
             // Assert
             expect(response.body).toMatchObject({
@@ -186,7 +186,7 @@ describe('PuzzleController', () => {
             ];
 
             // Act
-            const result = await controller.create({ countryCode: 'QAT', clues });
+            const result = await controller.create({ country_code: 'QAT', clues });
 
             // Assert
             expect(result.clues).toHaveLength(3);
@@ -200,8 +200,14 @@ describe('PuzzleController', () => {
             await createTestCountry(countryRepository);
 
             // Act
-            const puzzle1 = await controller.create({ countryCode: 'QAT', clues: [{ source: 'test', key: 'key1', value: 'value1' }] });
-            const puzzle2 = await controller.create({ countryCode: 'QAT', clues: [{ source: 'test', key: 'key2', value: 'value2' }] });
+            const puzzle1 = await controller.create({
+                country_code: 'QAT',
+                clues: [{ source: 'test', key: 'key1', value: 'value1' }],
+            });
+            const puzzle2 = await controller.create({
+                country_code: 'QAT',
+                clues: [{ source: 'test', key: 'key2', value: 'value2' }],
+            });
 
             // Assert
             expect(puzzle1.id).not.toBe(puzzle2.id);
@@ -213,7 +219,7 @@ describe('PuzzleController', () => {
 
         it('should return 400 for non-existent country', async () => {
             const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'XXX',
+                country_code: 'XXX',
                 clues: [
                     {
                         source: 'test',
@@ -223,10 +229,7 @@ describe('PuzzleController', () => {
                 ],
             };
 
-            await request(app.getHttpServer())
-                .post('/puzzles')
-                .send(createPuzzleDto)
-                .expect(400);
+            await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(400);
         });
 
         it('should return 400 for empty clues array', async () => {
@@ -234,14 +237,11 @@ describe('PuzzleController', () => {
             await createTestPuzzle(context, { skipClues: true });
 
             const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
+                country_code: 'QAT',
                 clues: [],
             };
 
-            await request(app.getHttpServer())
-                .post('/puzzles')
-                .send(createPuzzleDto)
-                .expect(400);
+            await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(400);
         });
     });
 
@@ -251,7 +251,7 @@ describe('PuzzleController', () => {
             const puzzle = await createTestPuzzle(context);
 
             const updatePuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
+                country_code: 'QAT',
                 clues: [
                     {
                         source: 'updated',
@@ -295,7 +295,7 @@ describe('PuzzleController', () => {
 
         it('should return 404 for non-existent puzzle', async () => {
             const updatePuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
+                country_code: 'QAT',
                 clues: [
                     {
                         source: 'test',
@@ -305,10 +305,7 @@ describe('PuzzleController', () => {
                 ],
             };
 
-            await request(app.getHttpServer())
-                .put('/puzzles/999')
-                .send(updatePuzzleDto)
-                .expect(404);
+            await request(app.getHttpServer()).put('/puzzles/999').send(updatePuzzleDto).expect(404);
         });
     });
 
@@ -318,9 +315,7 @@ describe('PuzzleController', () => {
             const puzzle = await createTestPuzzle(context);
 
             // Act
-            await request(app.getHttpServer())
-                .delete(`/puzzles/${puzzle.id}`)
-                .expect(200);
+            await request(app.getHttpServer()).delete(`/puzzles/${puzzle.id}`).expect(200);
 
             // Assert
             const deletedPuzzle = await context.puzzleRepository.findOne({
@@ -330,10 +325,89 @@ describe('PuzzleController', () => {
         });
 
         it('should return 404 for non-existent puzzle', async () => {
-            await request(app.getHttpServer())
-                .delete('/puzzles/999')
-                .expect(404);
+            await request(app.getHttpServer()).delete('/puzzles/999').expect(404);
         });
     });
 
-}); 
+    describe('GET /puzzles', () => {
+        it('should return paginated puzzles', async () => {
+            // Arrange
+            const country = await createTestCountry(countryRepository);
+            const puzzles = await Promise.all([
+                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country }),
+            ]);
+
+            // Act
+            queryCounter.startCounting();
+            const response = await request(app.getHttpServer()).get('/puzzles').expect(200);
+            const queryCount = queryCounter.stopQueryCount();
+
+            // Assert
+            expect(response.body.puzzles).toHaveLength(3);
+            expect(response.body.total).toBe(3);
+            // The puzzles are returned in descending order by id
+            const sortedPuzzles = [...puzzles].sort((a, b) => b.id - a.id);
+            expect(response.body.puzzles[0].id).toBe(sortedPuzzles[0].id);
+            expect(response.body.puzzles[1].id).toBe(sortedPuzzles[1].id);
+            expect(response.body.puzzles[2].id).toBe(sortedPuzzles[2].id);
+
+            // The paginated endpoint makes 3 queries:
+            // 1. A query to get distinct puzzle IDs for pagination
+            // 2. A query to get the full puzzle data with relations
+            // 3. A query to get the total count for pagination metadata
+            if (queryCount !== 3) {
+                console.error('Executed queries:', queryCounter.getExecutedQueries());
+            }
+            expect(queryCount).toBe(3);
+        });
+
+        it('should filter puzzles by country code', async () => {
+            // Arrange
+            const country1 = await createTestCountry(countryRepository, {
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+            const country2 = await createTestCountry(countryRepository, {
+                code: 'USA',
+                name: 'United States',
+                flag: '🇺🇸',
+            });
+            await Promise.all([
+                puzzleRepository.save({ country: country1 }),
+                puzzleRepository.save({ country: country2 }),
+            ]);
+
+            // Act
+            const response = await request(app.getHttpServer()).get('/puzzles?country_code=QAT').expect(200);
+
+            // Assert
+            expect(response.body.puzzles).toHaveLength(1);
+            expect(response.body.total).toBe(1);
+            expect(response.body.puzzles[0].country.code).toBe('QAT');
+        });
+
+        it('should handle pagination', async () => {
+            // Arrange
+            const country = await createTestCountry(countryRepository);
+            const puzzles = await Promise.all([
+                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country }),
+            ]);
+
+            // Act
+            const response = await request(app.getHttpServer()).get('/puzzles?page=1&limit=2').expect(200);
+
+            // Assert
+            expect(response.body.puzzles).toHaveLength(2);
+            expect(response.body.total).toBe(3);
+            // The puzzles are returned in descending order by id
+            const sortedPuzzles = [...puzzles].sort((a, b) => b.id - a.id);
+            expect(response.body.puzzles[0].id).toBe(sortedPuzzles[0].id);
+            expect(response.body.puzzles[1].id).toBe(sortedPuzzles[1].id);
+        });
+    });
+});

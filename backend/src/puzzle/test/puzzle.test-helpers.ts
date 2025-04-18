@@ -1,4 +1,5 @@
 import { Repository } from 'typeorm';
+
 import { Country } from '../../country/entities/country.entity';
 import { Clue } from '../entities/clue.entity';
 import { Puzzle } from '../entities/puzzle.entity';
@@ -58,12 +59,7 @@ export async function createTestPuzzle(
     context: TestRepositoryContext,
     options: CreateTestPuzzleOptions = {},
 ): Promise<Puzzle> {
-    const {
-        country = DEFAULT_COUNTRY,
-        clues = DEFAULT_CLUES,
-        skipClues = false,
-        skipCountry = false,
-    } = options;
+    const { country = DEFAULT_COUNTRY, clues = DEFAULT_CLUES, skipClues = false, skipCountry = false } = options;
 
     // Create or get country
     let savedCountry: Country;
@@ -104,4 +100,4 @@ export function createTestContext(
         clueRepository,
         countryRepository,
     };
-} 
+}

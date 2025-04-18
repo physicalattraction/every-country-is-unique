@@ -3,9 +3,8 @@
   "paths": {
     "/countries": {
       "get": {
-        "operationId": "CountryController_findAll",
-        "summary": "Get all countries",
         "description": "Retrieves a list of all countries, optionally filtered by name",
+        "operationId": "CountryController_findAll",
         "parameters": [
           {
             "name": "search",
@@ -32,6 +31,7 @@
             }
           }
         },
+        "summary": "Get all countries",
         "tags": [
           "countries"
         ]
@@ -39,9 +39,8 @@
     },
     "/countries/{code}": {
       "get": {
-        "operationId": "CountryController_findOne",
-        "summary": "Get country by code",
         "description": "Retrieves detailed information about a specific country",
+        "operationId": "CountryController_findOne",
         "parameters": [
           {
             "name": "code",
@@ -68,8 +67,213 @@
             "description": "Country not found"
           }
         },
+        "summary": "Get country by code",
         "tags": [
           "countries"
+        ]
+      }
+    },
+    "/puzzles": {
+      "get": {
+        "description": "Retrieves a paginated list of puzzles with optional filtering",
+        "operationId": "PuzzleController_findMany",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "countryCode",
+            "required": false,
+            "in": "query",
+            "description": "Filter puzzles by country code",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of puzzles retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "puzzles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PuzzleResponseDto"
+                      }
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Total number of puzzles"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get all puzzles",
+        "tags": [
+          "puzzles"
+        ]
+      },
+      "post": {
+        "description": "Creates a new puzzle with the given country and clues",
+        "operationId": "PuzzleController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePuzzleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Puzzle created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PuzzleResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid country code or missing clues"
+          }
+        },
+        "summary": "Create puzzle",
+        "tags": [
+          "puzzles"
+        ]
+      }
+    },
+    "/puzzles/{id}": {
+      "get": {
+        "description": "Retrieves detailed information about a specific puzzle",
+        "operationId": "PuzzleController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The puzzle ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Puzzle details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PuzzleResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Puzzle not found"
+          }
+        },
+        "summary": "Get puzzle by ID",
+        "tags": [
+          "puzzles"
+        ]
+      },
+      "put": {
+        "description": "Updates an existing puzzle by its ID",
+        "operationId": "PuzzleController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The puzzle ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePuzzleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Puzzle updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PuzzleResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid country code or missing clues"
+          },
+          "404": {
+            "description": "Puzzle not found"
+          }
+        },
+        "summary": "Update puzzle",
+        "tags": [
+          "puzzles"
+        ]
+      },
+      "delete": {
+        "description": "Deletes an existing puzzle by its ID",
+        "operationId": "PuzzleController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The puzzle ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Puzzle deleted successfully"
+          },
+          "404": {
+            "description": "Puzzle not found"
+          }
+        },
+        "summary": "Delete puzzle",
+        "tags": [
+          "puzzles"
         ]
       }
     }
@@ -157,6 +361,51 @@
           "name",
           "flag"
         ]
+      },
+      "Country": {
+        "type": "object",
+        "properties": {}
+      },
+      "ClueResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PuzzleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "The unique identifier of the puzzle"
+          },
+          "country": {
+            "description": "The country associated with the puzzle",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Country"
+              }
+            ]
+          },
+          "clues": {
+            "description": "The clues associated with the puzzle",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClueResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "country",
+          "clues"
+        ]
+      },
+      "CreatePuzzleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePuzzleDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

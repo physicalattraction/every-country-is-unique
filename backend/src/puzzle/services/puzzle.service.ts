@@ -91,4 +91,19 @@ export class PuzzleService {
         await this.clueRepository.delete({ puzzle: { id } });
         await this.puzzleRepository.delete(id);
     }
+
+    async findMany(countryCode?: string, page = 1, limit = 20): Promise<{ puzzles: Puzzle[]; total: number }> {
+        const skip = (page - 1) * limit;
+        const where = countryCode ? { country: { code: countryCode } } : {};
+
+        const [puzzles, total] = await this.puzzleRepository.findAndCount({
+            where,
+            relations: ['country', 'clues'],
+            order: { id: 'DESC' },
+            skip,
+            take: limit,
+        });
+
+        return { puzzles, total };
+    }
 }

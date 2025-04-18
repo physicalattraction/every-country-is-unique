@@ -7,6 +7,7 @@ module.exports = {
   },
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
+  preset: 'ts-jest',
   testEnvironment: 'node',
   testTimeout: 5000,
 }; 

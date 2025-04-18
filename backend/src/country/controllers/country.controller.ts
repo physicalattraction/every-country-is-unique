@@ -8,7 +8,7 @@ import { CountryService } from '../services/country.service';
 @ApiTags('countries')
 @Controller('countries')
 export class CountryController {
-    constructor(private readonly countryService: CountryService) {}
+    constructor(private readonly countryService: CountryService) { }
 
     @Get()
     @ApiOperation({

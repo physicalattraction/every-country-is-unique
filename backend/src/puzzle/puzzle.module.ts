@@ -13,4 +13,4 @@ import { PuzzleService } from './services/puzzle.service';
     providers: [PuzzleService],
     exports: [PuzzleService],
 })
-export class PuzzleModule { }
+export class PuzzleModule {}

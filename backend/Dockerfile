@@ -12,4 +12,4 @@ RUN rm -rf dist && npm run build
 
 EXPOSE ${PORT:-3001}
 
-CMD ["sh", "-c", "npm run ${NODE_ENV:-development}"] 
+CMD ["sh", "-c", "npm run ${NODE_ENV:-development}"]

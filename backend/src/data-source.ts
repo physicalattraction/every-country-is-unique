@@ -1,9 +1,6 @@
 // src/data-source.ts
 import { DataSource } from 'typeorm';
 
-import { Country } from './country/entities/country.entity';
-import { Currency } from './country/entities/currency.entity';
-import { Language } from './country/entities/language.entity';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -14,7 +11,7 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME || 'every_country_is_unique',
     synchronize: false,
     logging: true,
-    entities: [Country, Currency, Language],
+    entities: ['**/*.entity.ts'],
     migrations: [__dirname + '/migrations/*{.ts,.js}'],
     migrationsRun: true,
     subscribers: [],
