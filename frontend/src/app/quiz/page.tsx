@@ -7,7 +7,7 @@ export default function QuizRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/quiz/country-by-uniqueness');
+    router.replace('/quiz/every-country-is-unique');
   }, [router]);
 
   return (

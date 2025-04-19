@@ -44,13 +44,13 @@ A full-stack web application that provides detailed information about countries 
 1. Start the Backend:
 ```bash
 cd backend
-docker compose up -d
+docker compose up --build -d
 ```
 
 2. Start the Frontend:
 ```bash
 cd frontend
-docker compose up -d
+docker compose up --build -d
 ```
 
 The applications will be available at:
@@ -89,6 +89,7 @@ To populate the database with country data:
 cd backend
 npm run seed
 ```
+Note that the puzzles are created from another repository through the API.
 
 ## API Documentation
 
