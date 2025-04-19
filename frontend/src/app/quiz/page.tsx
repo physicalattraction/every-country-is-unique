@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function QuizRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/quiz/country-by-flag');
+    router.replace('/quiz/country-by-uniqueness');
   }, [router]);
 
   return (
