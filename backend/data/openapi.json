@@ -79,12 +79,12 @@
         "operationId": "PuzzleController_findMany",
         "parameters": [
           {
-            "name": "limit",
+            "name": "country_code",
             "required": false,
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Filter puzzles by country code",
             "schema": {
-              "type": "number"
+              "type": "string"
             }
           },
           {
@@ -93,15 +93,19 @@
             "in": "query",
             "description": "Page number for pagination",
             "schema": {
+              "default": 1,
               "type": "number"
             }
           },
           {
-            "name": "countryCode",
+            "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Filter puzzles by country code",
-            "schema": {}
+            "description": "Number of items per page",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -169,16 +173,19 @@
     },
     "/puzzles/{id}": {
       "get": {
-        "description": "Retrieves detailed information about a specific puzzle",
+        "description": "Retrieves a specific puzzle by ID or a random puzzle if \"random\" is specified",
         "operationId": "PuzzleController_findOne",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "The puzzle ID",
+            "description": "The puzzle ID (integer) or \"random\" for a random puzzle",
             "schema": {
-              "type": "number"
+              "enum": [
+                "random"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -193,11 +200,14 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid puzzle ID"
+          },
           "404": {
             "description": "Puzzle not found"
           }
         },
-        "summary": "Get puzzle by ID",
+        "summary": "Get puzzle by ID or random",
         "tags": [
           "puzzles"
         ]
@@ -399,9 +409,29 @@
           "clues"
         ]
       },
-      "CreatePuzzleDto": {
+      "CreateClueDto": {
         "type": "object",
         "properties": {}
+      },
+      "CreatePuzzleDto": {
+        "type": "object",
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "description": "The country code for the puzzle"
+          },
+          "clues": {
+            "description": "The clues for the puzzle",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateClueDto"
+            }
+          }
+        },
+        "required": [
+          "country_code",
+          "clues"
+        ]
       },
       "UpdatePuzzleDto": {
         "type": "object",

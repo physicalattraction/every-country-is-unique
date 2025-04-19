@@ -46,10 +46,16 @@ export class PuzzleController {
 
     @Get(':id')
     @ApiOperation({
-        summary: 'Get puzzle by ID',
-        description: 'Retrieves detailed information about a specific puzzle',
+        summary: 'Get puzzle by ID or random',
+        description: 'Retrieves a specific puzzle by ID or a random puzzle if "random" is specified',
     })
-    @ApiParam({ name: 'id', description: 'The puzzle ID', type: Number })
+    @ApiParam({
+        name: 'id',
+        description: 'The puzzle ID (integer) or "random" for a random puzzle',
+        type: 'integer | string',
+        enum: ['random'],
+        example: 1
+    })
     @ApiResponse({
         status: 200,
         description: 'Puzzle details retrieved successfully',
@@ -59,8 +65,22 @@ export class PuzzleController {
         status: 404,
         description: 'Puzzle not found',
     })
+    @ApiResponse({
+        status: 400,
+        description: 'Invalid puzzle ID',
+    })
     async findOne(@Param('id') id: string): Promise<PuzzleResponseDto> {
-        const puzzle = await this.puzzleService.findOne(Number(id));
+        if (id === 'random') {
+            const puzzle = await this.puzzleService.findRandom();
+            return new PuzzleResponseDto(puzzle);
+        }
+
+        const puzzleId = Number(id);
+        if (isNaN(puzzleId)) {
+            throw new HttpException('Invalid puzzle ID', HttpStatus.BAD_REQUEST);
+        }
+
+        const puzzle = await this.puzzleService.findOne(puzzleId);
         if (!puzzle) {
             throw new HttpException('Puzzle not found', HttpStatus.NOT_FOUND);
         }

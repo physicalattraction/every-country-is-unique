@@ -106,4 +106,26 @@ export class PuzzleService {
 
         return { puzzles, total };
     }
+
+    async findRandom(): Promise<Puzzle> {
+        const count = await this.puzzleRepository.count();
+        if (count === 0) {
+            throw new NotFoundException('No puzzles found');
+        }
+
+        const randomOffset = Math.floor(Math.random() * count);
+        const puzzle = await this.puzzleRepository
+            .createQueryBuilder('puzzle')
+            .leftJoinAndSelect('puzzle.country', 'country')
+            .leftJoinAndSelect('puzzle.clues', 'clues')
+            .skip(randomOffset)
+            .take(1)
+            .getOne();
+
+        if (!puzzle) {
+            throw new NotFoundException('No puzzle found');
+        }
+
+        return puzzle;
+    }
 }
