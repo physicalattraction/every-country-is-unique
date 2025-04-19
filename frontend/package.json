@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "generate-favicon": "ts-node scripts/generate-favicon.ts",
-    "development": "next start",
+    "development": "next dev",
     "production": "next start"
   },
   "dependencies": {
