@@ -19,7 +19,29 @@ interface PuzzleResponseDto {
 }
 
 function formatNumber(value: string): string {
-    return Number(value).toLocaleString();
+    const number = Number(value);
+    if (number >= 1e12) {
+        return `${(number / 1e12).toFixed(0)} trillion`;
+    } else if (number >= 1e9) {
+        return `${(number / 1e9).toFixed(0)} billion`;
+    } else if (number >= 1e6) {
+        return `${(number / 1e6).toFixed(0)} million`;
+    } else if (number >= 1e3) {
+        return `${(number / 1e3).toFixed(0)} thousand`;
+    }
+    return number.toString();
+}
+
+function formatHugeNumber(value: string): string {
+    const number = Number(value);
+    if (number >= 1e12) {
+        return `${(number / 1e12).toFixed(2)} trillion`;
+    } else if (number >= 1e9) {
+        return `${(number / 1e9).toFixed(2)} billion`;
+    } else if (number >= 1e6) {
+        return `${(number / 1e6).toFixed(2)} million`;
+    }
+    return formatNumber(value);
 }
 
 function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): string {
@@ -73,12 +95,13 @@ function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): str
             return `Uses ${clue.value} as its official currency`;
 
         case 'Flag':
-            function formatConcatenatedColors(colors: string): string {
-                const colors_on_flag = colors.split('|');
-                const final_color = colors_on_flag.pop();
-                const colors_to_connect = colors_on_flag.join(', ');
-                return `${colors_to_connect} and ${final_color}`;
-            }
+
+        function formatConcatenatedColors(colors: string): string {
+            const colors_on_flag = colors.split('|');
+            const final_color = colors_on_flag.pop();
+            const colors_to_connect = colors_on_flag.join(', ');
+            return `${colors_to_connect} and ${final_color}`;
+        }
 
             switch (clue.key) {
                 case 'has_color':
@@ -160,39 +183,57 @@ function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): str
                 case 'summer_participated_gte':
                     return `Has participated in ${clue.value} or more Summer Olympics`;
                 case 'summer_participated_lte':
-                    return `Has participated in ${clue.value} or fewer Summer Olympics`;
+                    return clue.value === '0'
+                        ? 'Has never participated in a Summer Olympics'
+                        : `Has participated in ${clue.value} or fewer Summer Olympics`;
                 case 'summer_gold_gte':
                     return `Has won ${clue.value} or more Summer Olympics gold medals`;
                 case 'summer_gold_lte':
-                    return clue.value === '0' ? 'Has never won a Summer Olympics gold medal' : `Has won ${clue.value} or fewer Summer Olympics gold medals`;
+                    return clue.value === '0'
+                        ? 'Has never won a Summer Olympics gold medal'
+                        : `Has won ${clue.value} or fewer Summer Olympics gold medals`;
                 case 'summer_total_gte':
                     return `Has won ${clue.value} or more Summer Olympics medals`;
                 case 'summer_total_lte':
-                    return clue.value === '0' ? 'Has never won a Summer Olympics medal' : `Has won ${clue.value} or fewer Summer Olympics medals`;
+                    return clue.value === '0'
+                        ? 'Has never won a Summer Olympics medal'
+                        : `Has won ${clue.value} or fewer Summer Olympics medals`;
                 case 'winter_participated_gte':
                     return `Has participated in ${clue.value} or more Winter Olympics`;
                 case 'winter_participated_lte':
-                    return `Has participated in ${clue.value} or fewer Winter Olympics`;
+                    return clue.value === '0'
+                        ? 'Has never participated in a Winter Olympics'
+                        : `Has participated in ${clue.value} or fewer Winter Olympics`;
                 case 'winter_gold_gte':
                     return `Has won ${clue.value} or more Winter Olympics gold medals`;
                 case 'winter_gold_lte':
-                    return clue.value === '0' ? 'Has never won a Winter Olympics gold medal' : `Has won ${clue.value} or fewer Winter Olympics gold medals`;
+                    return clue.value === '0'
+                        ? 'Has never won a Winter Olympics gold medal'
+                        : `Has won ${clue.value} or fewer Winter Olympics gold medals`;
                 case 'winter_total_gte':
                     return `Has won ${clue.value} or more Winter Olympics medals`;
                 case 'winter_total_lte':
-                    return clue.value === '0' ? 'Has never won a Winter Olympics medal' : `Has won ${clue.value} or fewer Winter Olympics medals`;
+                    return clue.value === '0'
+                        ? 'Has never won a Winter Olympics medal'
+                        : `Has won ${clue.value} or fewer Winter Olympics medals`;
                 case 'combined_participated_gte':
                     return `Has participated in ${clue.value} or more Olympics`;
                 case 'combined_participated_lte':
-                    return `Has participated in ${clue.value} or fewer Olympics`;
+                    return clue.value === '0'
+                        ? 'Has never participated in an Olympics'
+                        : `Has participated in ${clue.value} or fewer Olympics`;
                 case 'combined_gold_gte':
                     return `Has won ${clue.value} or more Olympic gold medals`;
                 case 'combined_gold_lte':
-                    return clue.value === '0' ? 'Has never won an Olympic gold medal' : `Has won ${clue.value} or fewer Olympic gold medals`;
+                    return clue.value === '0'
+                        ? 'Has never won an Olympic gold medal'
+                        : `Has won ${clue.value} or fewer Olympic gold medals`;
                 case 'combined_total_gte':
                     return `Has won ${clue.value} or more Olympic medals`;
                 case 'combined_total_lte':
-                    return clue.value === '0' ? 'Has never won an Olympic medal' : `Has won ${clue.value} or fewer Olympic medals`;
+                    return clue.value === '0'
+                        ? 'Has never won an Olympic medal'
+                        : `Has won ${clue.value} or fewer Olympic medals`;
             }
 
         case 'Population':
@@ -240,9 +281,9 @@ function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): str
                 case 'gini_bottom':
                     return 'Is among the 20 countries with the lowest income inequality';
                 case 'fertility_rate_gt':
-                    return `Has a fertility rate greater than ${clue.value} children per woman`;
+                    return `Has a fertility rate greater than ${formatNumber(clue.value)} children per woman`;
                 case 'fertility_rate_lt':
-                    return `Has a fertility rate less than ${clue.value} children per woman`;
+                    return `Has a fertility rate less than ${formatNumber(clue.value)} children per woman`;
                 case 'co2_per_capita_gt':
                     return `Has CO2 emissions per capita greater than ${formatNumber(clue.value)} metric tons`;
                 case 'co2_per_capita_lt':
@@ -317,7 +358,7 @@ export default function EveryCountryIsUniqueQuiz() {
                 setSuggestions([]);
             }
         }, 500),
-        [selectedCountry]
+        [selectedCountry],
     );
 
     useEffect(() => {
@@ -427,7 +468,7 @@ export default function EveryCountryIsUniqueQuiz() {
                         : isCorrect
                             ? 'bg-green-500'
                             : 'bg-red-500'
-                        }`}
+                    }`}
                 >
                     {getSubmitButtonText()}
                 </button>

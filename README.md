@@ -8,6 +8,7 @@ Current status: ECIU puzzles are almost working, but there are some issues
 - In a local development server, the ECIU puzzles are working, but the popup is showing up on top of the buttons
 - In a local Docker container, the popup doesn't show up at all, and you cannot click on the buttons
 - The CRUD APIs are working, but there is no authentication (should be there for create, update, delete)
+- Fix seeding of countries, use the API (we now have discrepancies between dropdown names and puzzle solutions)
 - To be deployed to the ECIU server
 
 Next step: Show the other countries when one of the clues is absent
@@ -16,7 +17,7 @@ Next step: Show the other countries when one of the clues is absent
 - Data model, API, frontend, upload script
 
 Other improvement ideas
-- Add a loading spinner when fetching data
+- Do not call the backend from the page in frontend, but define a Service
 - Only fetch country data once
 - Display country data used in puzzles in country overview (data model, API, frontend, upload script)
 - Use real flags instead of emojis
@@ -28,16 +29,15 @@ Other improvement ideas
 ```
 .
 ├── backend/             # NestJS backend application
+│   ├── data/            # OpenAPI documentation
 │   ├── src/
 │   ├── Dockerfile
 │   └── docker-compose.yml
 ├── frontend/           # Next.js frontend application
+│   ├── public/         # Static files (images, etc.)
 │   ├── src/
 │   ├── Dockerfile
 │   └── docker-compose.yml
-└── data/              # Shared data files
-    ├── docs/          # API documentation
-    └── rest_countries.json
 ```
 
 ## Prerequisites
