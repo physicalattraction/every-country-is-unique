@@ -35,6 +35,9 @@ cd /webapps/every-country-is-unique/backend
 # Pull latest changes
 git pull
 
+# Run migrations if you made changes to the database schema
+sudo NODE_ENV=production docker-compose exec api npm run migration:run
+
 # Rebuild and restart the backend container
 sudo NODE_ENV=production docker-compose up -d --build
 ```
