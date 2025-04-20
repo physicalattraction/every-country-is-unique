@@ -133,3 +133,6 @@ dist
 # IDE
 .idea
 .vscode
+
+# Databases
+database.sqlite

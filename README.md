@@ -5,8 +5,6 @@ A full-stack web application that provides puzzles and detailed information abou
 ## Status of the project
 
 Current status: ECIU puzzles are almost working, but there are some issues
-- The CRUD APIs are working, but there is no authentication (should be there for create, update, delete)
-- Fix seeding of countries, use the API (we now have discrepancies between dropdown names and puzzle solutions)
 - To be deployed to the ECIU server
 
 Next step: Show the other countries when one of the clues is absent

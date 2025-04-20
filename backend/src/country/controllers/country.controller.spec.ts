@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import * as request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
 
@@ -18,6 +19,8 @@ describe('CountryController', () => {
     let languageRepository: Repository<Language>;
     let dataSource: DataSource;
 
+    const TEST_API_KEY = 'test-api-key';
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             imports: [
@@ -31,10 +34,24 @@ describe('CountryController', () => {
                 }),
                 CountryModule,
                 TypeOrmModule.forFeature([Country, Currency, Language]),
+                ConfigModule.forRoot({
+                    isGlobal: true,
+                }),
             ],
             controllers: [CountryController],
             providers: [
                 CountryService,
+                {
+                    provide: ConfigService,
+                    useValue: {
+                        get: jest.fn((key: string) => {
+                            if (key === 'API_KEY') {
+                                return TEST_API_KEY;
+                            }
+                            return undefined;
+                        }),
+                    },
+                },
                 {
                     provide: Country,
                     useFactory: dataSource => dataSource.getRepository(Country),
@@ -56,14 +73,16 @@ describe('CountryController', () => {
         app = module.createNestApplication();
         await app.init();
 
-        countryRepository = module.get<Repository<Country>>(Country);
-        currencyRepository = module.get<Repository<Currency>>(Currency);
-        languageRepository = module.get<Repository<Language>>(Language);
+        countryRepository = module.get<Repository<Country>>(getRepositoryToken(Country));
+        currencyRepository = module.get<Repository<Currency>>(getRepositoryToken(Currency));
+        languageRepository = module.get<Repository<Language>>(getRepositoryToken(Language));
         dataSource = module.get<DataSource>(getDataSourceToken());
     });
 
     afterEach(async () => {
-        await app.close();
+        if (app) {
+            await app.close();
+        }
     });
 
     describe('GET /countries', () => {
@@ -132,7 +151,11 @@ describe('CountryController', () => {
             };
 
             // Act
-            const response = await request(app.getHttpServer()).put('/countries').send(countryDto).expect(200);
+            const response = await request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(countryDto)
+                .expect(200);
 
             // Assert
             expect(response.body.code).toBe('USA');
@@ -155,7 +178,11 @@ describe('CountryController', () => {
             };
 
             // Act
-            const response = await request(app.getHttpServer()).put('/countries').send(countryDto).expect(200);
+            const response = await request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(countryDto)
+                .expect(200);
 
             // Assert
             expect(response.body.code).toBe('USA');
@@ -179,7 +206,11 @@ describe('CountryController', () => {
             };
 
             // Act
-            const response = await request(app.getHttpServer()).put('/countries').send(countryDto).expect(200);
+            const response = await request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(countryDto)
+                .expect(200);
 
             // Assert
             expect(response.body.code).toBe('USA');
@@ -187,6 +218,33 @@ describe('CountryController', () => {
             expect(response.body.currencies[0].code).toBe('USD');
             expect(response.body.languages).toHaveLength(1);
             expect(response.body.languages[0].code).toBe('eng');
+        });
+
+        it('should require API key', () => {
+            const countryDto = {
+                code: 'USA',
+                name: 'United States',
+                flag: '🇺🇸',
+            };
+
+            return request(app.getHttpServer())
+                .put('/countries')
+                .send(countryDto)
+                .expect(401);
+        });
+
+        it('should reject invalid API key', () => {
+            const countryDto = {
+                code: 'USA',
+                name: 'United States',
+                flag: '🇺🇸',
+            };
+
+            return request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', 'wrong-key')
+                .send(countryDto)
+                .expect(401);
         });
     });
 
@@ -196,7 +254,10 @@ describe('CountryController', () => {
             await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
 
             // Act
-            await request(app.getHttpServer()).delete('/countries/USA').expect(200);
+            await request(app.getHttpServer())
+                .delete('/countries/USA')
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(200);
 
             // Assert
             const deletedCountry = await countryRepository.findOne({ where: { code: 'USA' } });
@@ -205,7 +266,10 @@ describe('CountryController', () => {
 
         it('should return 404 for non-existent country', async () => {
             // Act & Assert
-            await request(app.getHttpServer()).delete('/countries/XXX').expect(404);
+            await request(app.getHttpServer())
+                .delete('/countries/XXX')
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(404);
         });
 
         it('should return 400 when country is in use by puzzles', async () => {
@@ -222,8 +286,24 @@ describe('CountryController', () => {
             await dataSource.query(`INSERT INTO puzzle (country_code) VALUES ('USA')`);
 
             // Act & Assert
-            const response = await request(app.getHttpServer()).delete('/countries/USA').expect(400);
+            const response = await request(app.getHttpServer())
+                .delete('/countries/USA')
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(400);
             expect(response.body.message).toContain('Cannot delete country USA because it is still being used in puzzles');
+        });
+
+        it('should require API key', () => {
+            return request(app.getHttpServer())
+                .delete('/countries/USA')
+                .expect(401);
+        });
+
+        it('should reject invalid API key', () => {
+            return request(app.getHttpServer())
+                .delete('/countries/USA')
+                .set('X-API-Key', 'wrong-key')
+                .expect(401);
         });
     });
 }); 

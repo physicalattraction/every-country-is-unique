@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import * as request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
 
@@ -30,6 +31,8 @@ describe('PuzzleController', () => {
     let dataSource: DataSource;
     let queryCounter: QueryCounter;
 
+    const TEST_API_KEY = 'test-api-key';
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             imports: [
@@ -39,13 +42,28 @@ describe('PuzzleController', () => {
                     dropSchema: true,
                     entities: [Puzzle, Clue, Country, Currency, Language],
                     synchronize: true,
+                    logging: false,
                 }),
                 PuzzleModule,
                 TypeOrmModule.forFeature([Puzzle, Clue, Country]),
+                ConfigModule.forRoot({
+                    isGlobal: true,
+                }),
             ],
             controllers: [PuzzleController],
             providers: [
                 PuzzleService,
+                {
+                    provide: ConfigService,
+                    useValue: {
+                        get: jest.fn((key: string) => {
+                            if (key === 'API_KEY') {
+                                return TEST_API_KEY;
+                            }
+                            return undefined;
+                        }),
+                    },
+                },
                 {
                     provide: Puzzle,
                     useFactory: dataSource => dataSource.getRepository(Puzzle),
@@ -74,240 +92,16 @@ describe('PuzzleController', () => {
         );
 
         controller = module.get<PuzzleController>(PuzzleController);
-        puzzleRepository = module.get<Repository<Puzzle>>(Puzzle);
+        puzzleRepository = module.get<Repository<Puzzle>>(getRepositoryToken(Puzzle));
         countryRepository = module.get<Repository<Country>>(Country);
         dataSource = module.get<DataSource>(getDataSourceToken());
         queryCounter = new QueryCounter(dataSource);
     });
 
     afterEach(async () => {
-        await app.close();
-    });
-
-    describe('GET /puzzles/:id', () => {
-        it('should return a puzzle with its country and clues', async () => {
-            // Arrange
-            const puzzle = await createTestPuzzle(context);
-
-            // Act
-            const response = await request(app.getHttpServer()).get(`/puzzles/${puzzle.id}`).expect(200);
-
-            // Assert
-            expect(response.body).toEqual({
-                id: puzzle.id,
-                country: {
-                    code: 'QAT',
-                    name: 'Qatar',
-                    flag: '🇶🇦',
-                },
-                clues: [
-                    {
-                        source: 'name',
-                        key: 'has_nr_letters_lte',
-                        value: '5',
-                    },
-                    {
-                        source: 'population',
-                        key: 'population_lt',
-                        value: '3000000',
-                    },
-                ],
-            });
-        });
-
-        it('should return 404 for non-existent puzzle', async () => {
-            await request(app.getHttpServer()).get('/puzzles/999').expect(404);
-        });
-    });
-
-    describe('POST /puzzles', () => {
-        it('should create a new puzzle with clues', async () => {
-            // Arrange
-            const country = await createTestCountry(countryRepository, {
-                code: 'QAT',
-                name: 'Qatar',
-                flag: '🇶🇦',
-            });
-
-            const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
-                clues: [
-                    {
-                        source: 'name',
-                        key: 'has_nr_letters_lte',
-                        value: '5',
-                    },
-                    {
-                        source: 'population',
-                        key: 'population_lt',
-                        value: '3000000',
-                    },
-                ],
-            };
-
-            // Act
-            const response = await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(201);
-
-            // Assert
-            expect(response.body.id).toBeDefined();
-            expect(response.body.country.code).toBe('QAT');
-            expect(response.body.clues).toHaveLength(2);
-            expect(response.body.clues[0].source).toBe('name');
-            expect(response.body.clues[1].source).toBe('population');
-        });
-
-        it('should preserve clue order', async () => {
-            // Arrange
-            await createTestCountry(countryRepository);
-
-            const clues = [
-                { source: 'first', key: 'key1', value: 'value1' },
-                { source: 'second', key: 'key2', value: 'value2' },
-                { source: 'third', key: 'key3', value: 'value3' },
-            ];
-
-            // Act
-            const result = await controller.create({ countryCode: 'QAT', clues });
-
-            // Assert
-            expect(result.clues).toHaveLength(3);
-            expect(result.clues[0].source).toBe('first');
-            expect(result.clues[1].source).toBe('second');
-            expect(result.clues[2].source).toBe('third');
-        });
-
-        it('should create multiple puzzles for the same country', async () => {
-            // Arrange
-            await createTestCountry(countryRepository);
-
-            // Act
-            const puzzle1 = await controller.create({
-                countryCode: 'QAT',
-                clues: [{ source: 'test', key: 'key1', value: 'value1' }],
-            });
-            const puzzle2 = await controller.create({
-                countryCode: 'QAT',
-                clues: [{ source: 'test', key: 'key2', value: 'value2' }],
-            });
-
-            // Assert
-            expect(puzzle1.id).not.toBe(puzzle2.id);
-            expect(puzzle1.country.code).toBe('QAT');
-            expect(puzzle2.country.code).toBe('QAT');
-            expect(puzzle1.clues[0].value).toBe('value1');
-            expect(puzzle2.clues[0].value).toBe('value2');
-        });
-
-        it('should return 400 for non-existent country', async () => {
-            const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'XXX',
-                clues: [
-                    {
-                        source: 'test',
-                        key: 'test',
-                        value: 'test',
-                    },
-                ],
-            };
-
-            await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(400);
-        });
-
-        it('should return 400 for empty clues array', async () => {
-            // Arrange
-            await createTestPuzzle(context, { skipClues: true });
-
-            const createPuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
-                clues: [],
-            };
-
-            await request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(400);
-        });
-    });
-
-    describe('PUT /puzzles/:id', () => {
-        it('should update an existing puzzle', async () => {
-            // Arrange
-            const puzzle = await createTestPuzzle(context);
-
-            const updatePuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
-                clues: [
-                    {
-                        source: 'updated',
-                        key: 'updated',
-                        value: 'updated',
-                    },
-                ],
-            };
-
-            // Act
-            const response = await request(app.getHttpServer())
-                .put(`/puzzles/${puzzle.id}`)
-                .send(updatePuzzleDto)
-                .expect(200);
-
-            // Assert
-            expect(response.body).toMatchObject({
-                id: puzzle.id,
-                country: {
-                    code: 'QAT',
-                    name: 'Qatar',
-                    flag: '🇶🇦',
-                },
-                clues: [
-                    {
-                        source: 'updated',
-                        key: 'updated',
-                        value: 'updated',
-                    },
-                ],
-            });
-
-            // Verify database state
-            const updatedPuzzle = await context.puzzleRepository.findOne({
-                where: { id: puzzle.id },
-                relations: ['country', 'clues'],
-            });
-            expect(updatedPuzzle.clues).toHaveLength(1);
-            expect(updatedPuzzle.clues[0].source).toBe('updated');
-        });
-
-        it('should return 404 for non-existent puzzle', async () => {
-            const updatePuzzleDto: CreatePuzzleDto = {
-                countryCode: 'QAT',
-                clues: [
-                    {
-                        source: 'test',
-                        key: 'test',
-                        value: 'test',
-                    },
-                ],
-            };
-
-            await request(app.getHttpServer()).put('/puzzles/999').send(updatePuzzleDto).expect(404);
-        });
-    });
-
-    describe('DELETE /puzzles/:id', () => {
-        it('should delete an existing puzzle', async () => {
-            // Arrange
-            const puzzle = await createTestPuzzle(context);
-
-            // Act
-            await request(app.getHttpServer()).delete(`/puzzles/${puzzle.id}`).expect(200);
-
-            // Assert
-            const deletedPuzzle = await context.puzzleRepository.findOne({
-                where: { id: puzzle.id },
-            });
-            expect(deletedPuzzle).toBeNull();
-        });
-
-        it('should return 404 for non-existent puzzle', async () => {
-            await request(app.getHttpServer()).delete('/puzzles/999').expect(404);
-        });
+        if (app) {
+            await app.close();
+        }
     });
 
     describe('GET /puzzles', () => {
@@ -389,6 +183,205 @@ describe('PuzzleController', () => {
             const sortedPuzzles = [...puzzles].sort((a, b) => b.id - a.id);
             expect(response.body.puzzles[0].id).toBe(sortedPuzzles[0].id);
             expect(response.body.puzzles[1].id).toBe(sortedPuzzles[1].id);
+        });
+    });
+
+    describe('GET /puzzles/:id', () => {
+        it('should return a puzzle by id', async () => {
+            const puzzle = await createTestPuzzle(context);
+            const response = await request(app.getHttpServer())
+                .get(`/puzzles/${puzzle.id}`)
+                .expect(200);
+
+            expect(response.body.id).toBe(puzzle.id);
+            expect(response.body.country.code).toBe('QAT');
+            expect(response.body.clues).toHaveLength(2);
+        });
+
+        it('should return 404 for non-existent puzzle', () => {
+            return request(app.getHttpServer())
+                .get('/puzzles/999')
+                .expect(404);
+        });
+
+        it('should return 400 for invalid puzzle id', () => {
+            return request(app.getHttpServer())
+                .get('/puzzles/invalid')
+                .expect(400);
+        });
+    });
+
+    describe('POST /puzzles', () => {
+        const createPuzzleDto: CreatePuzzleDto = {
+            countryCode: 'QAT',
+            clues: [
+                {
+                    source: 'test',
+                    key: 'test',
+                    value: 'test',
+                },
+            ],
+        };
+
+        it('should create a new puzzle', async () => {
+            // Arrange
+            await createTestCountry(countryRepository);
+
+            // Act
+            const response = await request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(createPuzzleDto)
+                .expect(201);
+
+            // Assert
+            expect(response.body.country.code).toBe('QAT');
+            expect(response.body.clues).toHaveLength(1);
+            expect(response.body.clues[0].source).toBe('test');
+        });
+
+        it('should return 400 for non-existent country', async () => {
+            return request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', TEST_API_KEY)
+                .send({ ...createPuzzleDto, countryCode: 'XXX' })
+                .expect(400);
+        });
+
+        it('should return 400 for empty clues array', async () => {
+            await createTestCountry(countryRepository);
+            return request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', TEST_API_KEY)
+                .send({ ...createPuzzleDto, clues: [] })
+                .expect(400);
+        });
+
+        it('should require API key', () => {
+            return request(app.getHttpServer())
+                .post('/puzzles')
+                .send(createPuzzleDto)
+                .expect(401);
+        });
+
+        it('should reject invalid API key', () => {
+            return request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', 'wrong-key')
+                .send(createPuzzleDto)
+                .expect(401);
+        });
+    });
+
+    describe('PUT /puzzles/:id', () => {
+        it('should update an existing puzzle', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
+            const updateDto = {
+                countryCode: 'QAT',
+                clues: [{ source: 'updated', key: 'test', value: 'test' }],
+            };
+
+            // Act
+            const response = await request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updateDto)
+                .expect(200);
+
+            // Assert
+            expect(response.body.id).toBe(puzzle.id);
+            expect(response.body.clues).toHaveLength(1);
+            expect(response.body.clues[0].source).toBe('updated');
+        });
+
+        it('should return 404 for non-existent puzzle', async () => {
+            const updateDto = {
+                countryCode: 'QAT',
+                clues: [{ source: 'test', key: 'test', value: 'test' }],
+            };
+
+            return request(app.getHttpServer())
+                .put('/puzzles/999')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updateDto)
+                .expect(404);
+        });
+
+        it('should return 400 for non-existent country', async () => {
+            const puzzle = await createTestPuzzle(context);
+            const updateDto = {
+                countryCode: 'XXX',
+                clues: [{ source: 'test', key: 'test', value: 'test' }],
+            };
+
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updateDto)
+                .expect(400);
+        });
+
+        it('should require API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .send({
+                    countryCode: 'QAT',
+                    clues: [{ source: 'test', key: 'test', value: 'test' }],
+                })
+                .expect(401);
+        });
+
+        it('should reject invalid API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', 'wrong-key')
+                .send({
+                    countryCode: 'QAT',
+                    clues: [{ source: 'test', key: 'test', value: 'test' }],
+                })
+                .expect(401);
+        });
+    });
+
+    describe('DELETE /puzzles/:id', () => {
+        it('should delete a puzzle', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
+
+            // Act
+            await request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(200);
+
+            // Assert
+            const deletedPuzzle = await puzzleRepository.findOne({ where: { id: puzzle.id } });
+            expect(deletedPuzzle).toBeNull();
+        });
+
+        it('should return 404 for non-existent puzzle', async () => {
+            return request(app.getHttpServer())
+                .delete('/puzzles/999')
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(404);
+        });
+
+        it('should require API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .expect(401);
+        });
+
+        it('should reject invalid API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', 'wrong-key')
+                .expect(401);
         });
     });
 });

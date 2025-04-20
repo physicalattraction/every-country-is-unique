@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
 import { CreatePuzzleDto } from '../dto/create-puzzle.dto';
 import { FindPuzzlesDto } from '../dto/find-puzzles.dto';
 import { PuzzleResponseDto } from '../dto/puzzle-response.dto';
@@ -88,6 +89,7 @@ export class PuzzleController {
     }
 
     @Post()
+    @UseGuards(ApiKeyGuard)
     @ApiOperation({
         summary: 'Create puzzle',
         description: 'Creates a new puzzle with the given country and clues',
@@ -114,6 +116,7 @@ export class PuzzleController {
     }
 
     @Put(':id')
+    @UseGuards(ApiKeyGuard)
     @ApiOperation({
         summary: 'Update puzzle',
         description: 'Updates an existing puzzle by its ID',
@@ -152,6 +155,7 @@ export class PuzzleController {
     }
 
     @Delete(':id')
+    @UseGuards(ApiKeyGuard)
     @ApiOperation({
         summary: 'Delete puzzle',
         description: 'Deletes an existing puzzle by its ID',

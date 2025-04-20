@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CountryUpsertDto } from '../dto/country.upsert.dto';
@@ -46,6 +47,7 @@ export class CountryController {
     }
 
     @Put()
+    @UseGuards(ApiKeyGuard)
     @ApiOperation({
         summary: 'Create or update a country',
         description: 'Creates a new country or updates an existing one based on the three-letter code',
@@ -60,6 +62,7 @@ export class CountryController {
     }
 
     @Delete(':code')
+    @UseGuards(ApiKeyGuard)
     @ApiOperation({
         summary: 'Delete a country',
         description: 'Deletes a country by its three-letter code',

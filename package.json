@@ -4,6 +4,7 @@
     "supertest": "^7.1.0"
   },
   "dependencies": {
-    "@nestjs/swagger": "^11.1.4"
+    "@nestjs/swagger": "^11.1.4",
+    "better-sqlite3": "^11.9.1"
   }
 }

@@ -35,6 +35,37 @@
         "tags": [
           "countries"
         ]
+      },
+      "put": {
+        "description": "Creates a new country or updates an existing one based on the three-letter code",
+        "operationId": "CountryController_upsert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountryUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Country created or updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create or update a country",
+        "tags": [
+          "countries"
+        ]
       }
     },
     "/countries/{code}": {
@@ -71,6 +102,36 @@
         "tags": [
           "countries"
         ]
+      },
+      "delete": {
+        "description": "Deletes a country by its three-letter code",
+        "operationId": "CountryController_delete",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "description": "The three-letter country code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Country deleted successfully"
+          },
+          "400": {
+            "description": "Cannot delete country because it is still being used in puzzles"
+          },
+          "404": {
+            "description": "Country not found"
+          }
+        },
+        "summary": "Delete a country",
+        "tags": [
+          "countries"
+        ]
       }
     },
     "/puzzles": {
@@ -79,7 +140,7 @@
         "operationId": "PuzzleController_findMany",
         "parameters": [
           {
-            "name": "country_code",
+            "name": "countryCode",
             "required": false,
             "in": "query",
             "description": "Filter puzzles by country code",
@@ -372,6 +433,42 @@
           "flag"
         ]
       },
+      "CountryUpsertDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The three-letter country code"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the country"
+          },
+          "flag": {
+            "type": "string",
+            "description": "The flag emoji of the country"
+          },
+          "currencyCodes": {
+            "description": "The currency codes used in the country",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "languageCodes": {
+            "description": "The language codes spoken in the country",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "flag"
+        ]
+      },
       "Country": {
         "type": "object",
         "properties": {}
@@ -416,7 +513,7 @@
       "CreatePuzzleDto": {
         "type": "object",
         "properties": {
-          "country_code": {
+          "countryCode": {
             "type": "string",
             "description": "The country code for the puzzle"
           },
@@ -429,13 +526,29 @@
           }
         },
         "required": [
-          "country_code",
+          "countryCode",
           "clues"
         ]
       },
       "UpdatePuzzleDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "countryCode": {
+            "type": "string",
+            "description": "The country code for the puzzle"
+          },
+          "clues": {
+            "description": "The clues for the puzzle",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateClueDto"
+            }
+          }
+        },
+        "required": [
+          "countryCode",
+          "clues"
+        ]
       }
     }
   }
