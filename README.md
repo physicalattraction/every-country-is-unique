@@ -7,6 +7,9 @@ A full-stack web application that provides puzzles and detailed information abou
 Current status: ECIU puzzles are almost working, but there are some issues
 - To be deployed to the ECIU server
 
+Known data issues:
+- Has never won a Summer Olympics gold medal -> USA ?
+
 Next step: Show the other countries when one of the clues is absent
 - The puzzles are created from another repository through the API
 - Show the other countries when one of the clues is absent

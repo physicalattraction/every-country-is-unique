@@ -6,6 +6,12 @@ export interface Clue {
     value: string;
 }
 
+export interface ClueResponseDto {
+    source: string;
+    key: string;
+    value: string;
+}
+
 export interface Puzzle {
     id: number;
     country: {

@@ -35,11 +35,12 @@ cd /webapps/every-country-is-unique/backend
 # Pull latest changes
 git pull
 
-# Run migrations if you made changes to the database schema
-sudo NODE_ENV=production docker-compose exec api npm run migration:run
-
 # Rebuild and restart the backend container
-sudo NODE_ENV=production docker-compose up -d --build
+sudo NODE_ENV=production docker-compose down api-every-country-is-unique  # Stop container
+sudo NODE_ENV=production docker rm -f api-every-country-is-unique  # Remove old container
+sudo NODE_ENV=production docker rmi every-country-is-unique-backend-api  # Remove old image
+sudo NODE_ENV=production docker-compose up -d --build  # Build and start new container
+sudo NODE_ENV=production docker-compose exec api npm run migration:run  # Run migrations if you made changes to the database schema
 ```
 
 ### 1.2 Verify Backend Deployment
@@ -67,9 +68,9 @@ cd /webapps/every-country-is-unique/frontend
 git pull
 
 # Rebuild and restart the frontend container
-sudo NODE_ENV=production docker-compose down  # Stop container
-sudo NODE_ENV=production docker-compose rm -f  # Remove stopped containers
-sudo NODE_ENV=production docker rmi every-country-is-unique-backend_api  # Remove old image
+sudo NODE_ENV=production docker-compose down web-every-country-is-unique  # Stop container
+sudo NODE_ENV=production docker rm -f web-every-country-is-unique  # Remove old container
+sudo NODE_ENV=production docker rmi every-country-is-unique-frontend-web  # Remove old image
 sudo NODE_ENV=production docker-compose up -d --build  # Build and start new container
 ```
 

@@ -9,7 +9,7 @@ async function bootstrap() {
     app.enableCors({
         origin: ['https://everycountryisunique.com', 'https://www.everycountryisunique.com', 'http://localhost:3000'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
     });
     await app.listen(3001, '0.0.0.0');
 }
