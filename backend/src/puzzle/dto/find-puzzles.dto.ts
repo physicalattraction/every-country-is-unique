@@ -6,7 +6,7 @@ export class FindPuzzlesDto {
     @ApiProperty({ description: 'Filter puzzles by country code', required: false })
     @IsOptional()
     @IsString()
-    country_code?: string;
+    countryCode?: string;
 
     @ApiProperty({ description: 'Page number for pagination', required: false, default: 1 })
     @IsOptional()

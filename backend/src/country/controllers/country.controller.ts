@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
+import { CountryUpsertDto } from '../dto/country.upsert.dto';
 import { CountryService } from '../services/country.service';
 
 @ApiTags('countries')
@@ -42,5 +43,41 @@ export class CountryController {
     })
     async findOne(@Param('code') code: string): Promise<CountryResponseDto> {
         return this.countryService.findOne(code);
+    }
+
+    @Put()
+    @ApiOperation({
+        summary: 'Create or update a country',
+        description: 'Creates a new country or updates an existing one based on the three-letter code',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Country created or updated successfully',
+        type: CountryResponseDto,
+    })
+    async upsert(@Body() dto: CountryUpsertDto): Promise<CountryResponseDto> {
+        return this.countryService.upsert(dto);
+    }
+
+    @Delete(':code')
+    @ApiOperation({
+        summary: 'Delete a country',
+        description: 'Deletes a country by its three-letter code',
+    })
+    @ApiParam({ name: 'code', description: 'The three-letter country code' })
+    @ApiResponse({
+        status: 200,
+        description: 'Country deleted successfully',
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Cannot delete country because it is still being used in puzzles',
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Country not found',
+    })
+    async delete(@Param('code') code: string): Promise<void> {
+        return this.countryService.delete(code);
     }
 }

@@ -17,7 +17,7 @@ export class PuzzleController {
         summary: 'Get all puzzles',
         description: 'Retrieves a paginated list of puzzles with optional filtering',
     })
-    @ApiQuery({ name: 'country_code', required: false, description: 'Filter puzzles by country code' })
+    @ApiQuery({ name: 'countryCode', required: false, description: 'Filter puzzles by country code' })
     @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number for pagination' })
     @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of items per page' })
     @ApiResponse({
@@ -37,7 +37,7 @@ export class PuzzleController {
         },
     })
     async findMany(@Query() query: FindPuzzlesDto): Promise<{ puzzles: PuzzleResponseDto[]; total: number }> {
-        const { puzzles, total } = await this.puzzleService.findMany(query.country_code, query.page, query.limit);
+        const { puzzles, total } = await this.puzzleService.findMany(query.countryCode, query.page, query.limit);
         return {
             puzzles: puzzles.map(puzzle => new PuzzleResponseDto(puzzle)),
             total,
@@ -103,7 +103,7 @@ export class PuzzleController {
     })
     async create(@Body() createPuzzleDto: CreatePuzzleDto): Promise<PuzzleResponseDto> {
         try {
-            const puzzle = await this.puzzleService.create(createPuzzleDto.country_code, createPuzzleDto.clues);
+            const puzzle = await this.puzzleService.create(createPuzzleDto.countryCode, createPuzzleDto.clues);
             return new PuzzleResponseDto(puzzle);
         } catch (error) {
             if (error.message.includes('Country with code')) {
@@ -136,7 +136,7 @@ export class PuzzleController {
         try {
             const puzzle = await this.puzzleService.update(
                 Number(id),
-                updatePuzzleDto.country_code,
+                updatePuzzleDto.countryCode,
                 updatePuzzleDto.clues,
             );
             if (!puzzle) {

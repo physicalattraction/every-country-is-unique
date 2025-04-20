@@ -20,7 +20,7 @@ export class CreatePuzzleDto {
     @ApiProperty({ description: 'The country code for the puzzle' })
     @IsString()
     @IsNotEmpty()
-    country_code: string;
+    countryCode: string;
 
     @ApiProperty({ description: 'The clues for the puzzle', type: [CreateClueDto] })
     @IsArray()
