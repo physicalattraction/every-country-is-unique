@@ -1,22 +1,11 @@
 'use client';
 
 import { countryService } from '@/services/countryService';
+import { Clue, Puzzle, puzzleService } from '@/services/puzzleService';
 import { CountryResponseDto } from '@/services/types';
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-interface ClueResponseDto {
-    source: string;
-    key: string;
-    value: string;
-}
-
-interface PuzzleResponseDto {
-    id: number;
-    country: CountryResponseDto;
-    clues: ClueResponseDto[];
-}
 
 function formatNumber(value: string): string {
     const number = Number(value);
@@ -32,7 +21,7 @@ function formatNumber(value: string): string {
     return number.toString();
 }
 
-function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): string {
+function formatClue(clue: Clue, countries: CountryResponseDto[]): string {
     switch (clue.source) {
         case 'Area':
             switch (clue.key) {
@@ -282,7 +271,7 @@ function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): str
 }
 
 export default function EveryCountryIsUniqueQuiz() {
-    const [puzzle, setPuzzle] = useState<PuzzleResponseDto | null>(null);
+    const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
     const [formattedClues, setFormattedClues] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [suggestions, setSuggestions] = useState<CountryResponseDto[]>([]);
@@ -367,11 +356,11 @@ export default function EveryCountryIsUniqueQuiz() {
 
     const fetchRandomPuzzle = useCallback(async () => {
         try {
-            const response = await fetch('http://localhost:3001/puzzles/random');
-            const data = await response.json();
+            const data = await puzzleService.getRandomPuzzle();
             setPuzzle(data);
             setIsLoading(false);
         } catch (error) {
+            console.error('Error fetching random puzzle:', error);
             setIsLoading(false);
             setPuzzle(null);
         }

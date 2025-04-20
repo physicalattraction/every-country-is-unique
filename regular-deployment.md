@@ -67,7 +67,10 @@ cd /webapps/every-country-is-unique/frontend
 git pull
 
 # Rebuild and restart the frontend container
-sudo NODE_ENV=production docker-compose up -d --build
+sudo NODE_ENV=production docker-compose down  # Stop container
+sudo NODE_ENV=production docker-compose rm -f  # Remove stopped containers
+sudo NODE_ENV=production docker rmi every-country-is-unique-backend_api  # Remove old image
+sudo NODE_ENV=production docker-compose up -d --build  # Build and start new container
 ```
 
 ### 2.2 Verify Frontend Deployment

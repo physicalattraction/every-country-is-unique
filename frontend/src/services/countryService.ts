@@ -1,4 +1,4 @@
-import { API_CONFIG } from '@/config/api';
+import { apiConfig } from '@/config/api';
 import { CountryResponseDto } from './types';
 
 export interface Country {
@@ -11,22 +11,22 @@ class CountryService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = API_CONFIG.baseUrl;
+    this.baseUrl = apiConfig.baseUrl;
     console.log('CountryService initialized with baseUrl:', this.baseUrl);
   }
 
   async getAllCountries(search?: string): Promise<CountryResponseDto[]> {
     try {
-      const url = new URL(`${this.baseUrl}${API_CONFIG.endpoints.countries}`);
+      const url = new URL(`${this.baseUrl}${apiConfig.endpoints.countries}`);
       if (search) {
         url.searchParams.append('search', search);
       }
-      
+
       console.log('Fetching countries from:', url.toString());
-      
+
       const response = await fetch(url);
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch countries: ${response.status} ${response.statusText}`);
       }
@@ -42,12 +42,12 @@ class CountryService {
 
   async getCountryByCode(code: string): Promise<CountryResponseDto> {
     try {
-      const url = `${this.baseUrl}${API_CONFIG.endpoints.countries}/${code}`;
+      const url = `${this.baseUrl}${apiConfig.endpoints.countries}/${code}`;
       console.log('Fetching country from:', url);
-      
+
       const response = await fetch(url);
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(`Country with code ${code} not found`);
