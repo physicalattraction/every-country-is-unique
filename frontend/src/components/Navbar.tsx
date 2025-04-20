@@ -10,33 +10,30 @@ export function Navbar({ currentPage }: NavbarProps) {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-center gap-4">
           <div className="flex items-center gap-4">
-            <Link 
-              href="/" 
-              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${
-                currentPage === 'home' 
-                  ? 'bg-white bg-opacity-50 text-black' 
+            <Link
+              href="/home"
+              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${currentPage === 'home'
+                  ? 'bg-white bg-opacity-50 text-black'
                   : 'bg-black bg-opacity-50 text-white hover:bg-opacity-60'
-              }`}
+                }`}
             >
               Home
             </Link>
-            <Link 
-              href="/countries" 
-              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${
-                currentPage === 'countries' 
-                  ? 'bg-white bg-opacity-50 text-black' 
+            <Link
+              href="/countries"
+              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${currentPage === 'countries'
+                  ? 'bg-white bg-opacity-50 text-black'
                   : 'bg-black bg-opacity-50 text-white hover:bg-opacity-60'
-              }`}
+                }`}
             >
               Countries
             </Link>
-            <Link 
-              href="/quiz" 
-              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${
-                currentPage === 'quiz' 
-                  ? 'bg-white bg-opacity-50 text-black' 
+            <Link
+              href="/quiz"
+              className={`px-6 py-2 text-sm font-medium rounded min-w-[120px] text-center transition-colors ${currentPage === 'quiz'
+                  ? 'bg-white bg-opacity-50 text-black'
                   : 'bg-black bg-opacity-50 text-white hover:bg-opacity-60'
-              }`}
+                }`}
             >
               Quiz
             </Link>

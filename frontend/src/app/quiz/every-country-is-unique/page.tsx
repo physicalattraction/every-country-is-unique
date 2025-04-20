@@ -4,7 +4,7 @@ import { countryService } from '@/services/countryService';
 import { CountryResponseDto } from '@/services/types';
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ClueResponseDto {
     source: string;
@@ -30,18 +30,6 @@ function formatNumber(value: string): string {
         return `${(number / 1e3).toFixed(0)} thousand`;
     }
     return number.toString();
-}
-
-function formatHugeNumber(value: string): string {
-    const number = Number(value);
-    if (number >= 1e12) {
-        return `${(number / 1e12).toFixed(2)} trillion`;
-    } else if (number >= 1e9) {
-        return `${(number / 1e9).toFixed(2)} billion`;
-    } else if (number >= 1e6) {
-        return `${(number / 1e6).toFixed(2)} million`;
-    }
-    return formatNumber(value);
 }
 
 function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): string {
@@ -96,12 +84,12 @@ function formatClue(clue: ClueResponseDto, countries: CountryResponseDto[]): str
 
         case 'Flag':
 
-        function formatConcatenatedColors(colors: string): string {
-            const colors_on_flag = colors.split('|');
-            const final_color = colors_on_flag.pop();
-            const colors_to_connect = colors_on_flag.join(', ');
-            return `${colors_to_connect} and ${final_color}`;
-        }
+            function formatConcatenatedColors(colors: string): string {
+                const colors_on_flag = colors.split('|');
+                const final_color = colors_on_flag.pop();
+                const colors_to_connect = colors_on_flag.join(', ');
+                return `${colors_to_connect} and ${final_color}`;
+            }
 
             switch (clue.key) {
                 case 'has_color':
@@ -302,7 +290,59 @@ export default function EveryCountryIsUniqueQuiz() {
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [countries, setCountries] = useState<CountryResponseDto[]>([]);
+    const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+    const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
+
+    // Reset highlighted index when suggestions change
+    useEffect(() => {
+        setHighlightedIndex(-1);
+    }, [suggestions]);
+
+    // Focus input when puzzle changes
+    useEffect(() => {
+        if (puzzle && !isLoading) {
+            inputRef.current?.focus();
+        }
+    }, [puzzle, isLoading]);
+
+    const selectCountry = (country: CountryResponseDto) => {
+        setSelectedCountry(country);
+        setSearchTerm(country.name);
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+    };
+
+    const handleKeyNavigation = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            if (suggestions.length === 1) {
+                // If there's only one suggestion, select it and submit
+                selectCountry(suggestions[0]);
+                handleSubmit();
+            } else if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
+                // If an option is highlighted, select it
+                selectCountry(suggestions[highlightedIndex]);
+            } else if (selectedCountry && isCorrect === null) {
+                // If a country is already selected, submit
+                handleSubmit();
+            } else if (isCorrect !== null) {
+                // If we've already submitted, go to next puzzle
+                handleNextPuzzle();
+            }
+        } else if (suggestions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setHighlightedIndex(prev =>
+                    prev < suggestions.length - 1 ? prev + 1 : 0
+                );
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setHighlightedIndex(prev =>
+                    prev > 0 ? prev - 1 : suggestions.length - 1
+                );
+            }
+        }
+    };
 
     // Fetch all countries when component mounts
     useEffect(() => {
@@ -343,27 +383,39 @@ export default function EveryCountryIsUniqueQuiz() {
 
     const searchCountries = useCallback(
         debounce(async (term: string) => {
-            if (term.length < 3 || selectedCountry?.name === term) {
+            // If the term is less than 3 characters, don't show any suggestions
+            if (term.length < 3) {
                 setSuggestions([]);
                 return;
             }
 
-            try {
-                const response = await fetch(`/api/countries?search=${term}`);
-                if (!response.ok) throw new Error('Failed to fetch countries');
-                const data = await response.json();
-                setSuggestions(data);
-            } catch (error) {
-                console.error('Error searching countries:', error);
+            // Check for exact match first
+            const exactMatch = countries.find(
+                country => country.name.toLowerCase() === term.toLowerCase()
+            );
+
+            if (exactMatch) {
+                setSelectedCountry(exactMatch);
                 setSuggestions([]);
+                return;
             }
+
+            // If no exact match, show suggestions
+            const filteredCountries = countries.filter(country =>
+                country.name.toLowerCase().includes(term.toLowerCase())
+            );
+            setSuggestions(filteredCountries);
         }, 500),
-        [selectedCountry],
+        [selectedCountry, countries]
     );
 
     useEffect(() => {
         searchCountries(searchTerm);
     }, [searchTerm, searchCountries]);
+
+    // Add console log for suggestions state changes
+    useEffect(() => {
+    }, [suggestions]);
 
     const handleSubmit = () => {
         if (!selectedCountry || !puzzle) return;
@@ -404,9 +456,6 @@ export default function EveryCountryIsUniqueQuiz() {
         );
     }
 
-    console.log('Rendering with puzzle:', puzzle);
-    console.log('Current clues:', puzzle.clues);
-
     return (
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold mb-8 text-center">Every Country is Unique</h1>
@@ -428,28 +477,30 @@ export default function EveryCountryIsUniqueQuiz() {
 
                 <div className="relative mt-8">
                     <input
+                        ref={inputRef}
                         type="text"
                         value={searchTerm}
                         onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            if (e.target.value !== selectedCountry?.name) {
+                            const newTerm = e.target.value;
+                            setSearchTerm(newTerm);
+
+                            // Clear selected country if the input doesn't match it exactly
+                            if (selectedCountry && selectedCountry.name.toLowerCase() !== newTerm.toLowerCase()) {
                                 setSelectedCountry(null);
                             }
                         }}
+                        onKeyDown={handleKeyNavigation}
                         placeholder="Start typing a country name..."
                         className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     />
                     {suggestions.length > 0 && (
-                        <div className="fixed inset-x-0 mx-auto max-w-2xl mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" style={{ zIndex: 1000 }}>
-                            {suggestions.map((country) => (
+                        <div className="absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+                            {suggestions.map((country, index) => (
                                 <div
                                     key={country.code}
-                                    onClick={() => {
-                                        setSelectedCountry(country);
-                                        setSearchTerm(country.name);
-                                        setSuggestions([]);
-                                    }}
-                                    className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                                    onClick={() => selectCountry(country)}
+                                    className={`p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 ${index === highlightedIndex ? 'bg-gray-100' : ''
+                                        }`}
                                 >
                                     {country.name}
                                 </div>
@@ -468,7 +519,7 @@ export default function EveryCountryIsUniqueQuiz() {
                         : isCorrect
                             ? 'bg-green-500'
                             : 'bg-red-500'
-                    }`}
+                        }`}
                 >
                     {getSubmitButtonText()}
                 </button>
@@ -481,6 +532,29 @@ export default function EveryCountryIsUniqueQuiz() {
                         Next Puzzle
                     </button>
                 )}
+
+                {/* Keyboard Controls Section */}
+                <div className="border-t border-gray-200 mt-8 pt-6">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-4">Keyboard Controls</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                        <div>
+                            <p className="mb-2">
+                                <span className="font-medium">↑/↓ Arrow Keys:</span> Navigate through country suggestions
+                            </p>
+                            <p className="mb-2">
+                                <span className="font-medium">Enter:</span> Select highlighted country or submit answer
+                            </p>
+                        </div>
+                        <div>
+                            <p className="mb-2">
+                                <span className="font-medium">Type 3+ Letters:</span> Search for countries
+                            </p>
+                            <p>
+                                <span className="font-medium">Enter (after answer):</span> Move to next puzzle
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

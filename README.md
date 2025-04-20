@@ -5,8 +5,6 @@ A full-stack web application that provides puzzles and detailed information abou
 ## Status of the project
 
 Current status: ECIU puzzles are almost working, but there are some issues
-- In a local development server, the ECIU puzzles are working, but the popup is showing up on top of the buttons
-- In a local Docker container, the popup doesn't show up at all, and you cannot click on the buttons
 - The CRUD APIs are working, but there is no authentication (should be there for create, update, delete)
 - Fix seeding of countries, use the API (we now have discrepancies between dropdown names and puzzle solutions)
 - To be deployed to the ECIU server
