@@ -38,7 +38,6 @@ echo "Building containers without cache..."
 echo "Starting containers..."
 ./docker-compose.sh up -d
 
-# Verify the running container
 echo "Verifying container..."
 MAX_ATTEMPTS=60
 ATTEMPT=1
@@ -60,6 +59,5 @@ if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
     exit 1
 fi
 
-# Check the logs
 echo "Checking application logs..."
 docker logs -f web-every-country-is-unique
