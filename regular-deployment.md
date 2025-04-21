@@ -32,15 +32,8 @@ ssh eciu
 # Navigate to backend directory
 cd /webapps/every-country-is-unique/backend
 
-# Pull latest changes
-git pull
-
-# Rebuild and restart the backend container
-sudo NODE_ENV=production docker-compose down api-every-country-is-unique  # Stop container
-sudo NODE_ENV=production docker rm -f api-every-country-is-unique  # Remove old container
-sudo NODE_ENV=production docker rmi every-country-is-unique-backend-api  # Remove old image
-sudo NODE_ENV=production docker-compose up -d --build  # Build and start new container
-sudo NODE_ENV=production docker-compose exec api npm run migration:run  # Run migrations if you made changes to the database schema
+# This script handles the deployment process
+sudo NODE_ENV=production ./deploy.sh
 ```
 
 ### 1.2 Verify Backend Deployment
@@ -50,7 +43,7 @@ sudo NODE_ENV=production docker-compose exec api npm run migration:run  # Run mi
 sudo docker logs -f api-every-country-is-unique
 
 # Test API endpoint
-curl -L https://api.everycountryisunique.com/countries
+curl -L https://api.everycountryisunique.com/health
 ```
 
 ## 2. Frontend Updates
@@ -63,15 +56,9 @@ ssh eciu
 
 # Navigate to frontend directory
 cd /webapps/every-country-is-unique/frontend
-
-# Pull latest changes
-git pull
-
-# Rebuild and restart the frontend container
-sudo NODE_ENV=production docker-compose down web-every-country-is-unique  # Stop container
-sudo NODE_ENV=production docker rm -f web-every-country-is-unique  # Remove old container
-sudo NODE_ENV=production docker rmi every-country-is-unique-frontend-web  # Remove old image
-sudo NODE_ENV=production docker-compose up -d --build  # Build and start new container
+  
+# This script handles the deployment process
+sudo NODE_ENV=production ./deploy.sh
 ```
 
 ### 2.2 Verify Frontend Deployment
