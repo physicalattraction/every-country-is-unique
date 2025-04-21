@@ -43,4 +43,12 @@ export class CreatePuzzleDto {
     @IsArray()
     @HasMinLengthForInnerArrays()
     alternativeCountries: string[][];
+
+    @ApiProperty({
+        description: 'A unique key used to prevent duplicate puzzles',
+        example: 'abc123',
+    })
+    @IsString()
+    @IsNotEmpty()
+    deduplicationKey: string;
 }

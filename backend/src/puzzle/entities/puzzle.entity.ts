@@ -1,9 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Clue } from './clue.entity';
 
 @Entity()
+@Unique(['deduplicationKey'])
 export class Puzzle {
     @PrimaryGeneratedColumn()
     id: number;
@@ -17,4 +18,7 @@ export class Puzzle {
 
     @Column('simple-json', { nullable: true })
     alternativeCountries: string[][];
+
+    @Column({ length: 32 })
+    deduplicationKey: string;
 }

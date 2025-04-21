@@ -28,6 +28,7 @@ export interface CreateTestPuzzleOptions {
     alternativeCountries?: string[][];
     skipClues?: boolean;
     skipCountry?: boolean;
+    deduplicationKey?: string;
 }
 
 const DEFAULT_COUNTRY: TestCountry = {
@@ -70,7 +71,8 @@ export async function createTestPuzzle(
         clues = DEFAULT_CLUES,
         alternativeCountries = DEFAULT_ALTERNATIVE_COUNTRIES,
         skipClues = false,
-        skipCountry = false
+        skipCountry = false,
+        deduplicationKey = 'test-key'
     } = options;
 
     // Create or get country
@@ -87,7 +89,8 @@ export async function createTestPuzzle(
     // Create puzzle
     const puzzle = await context.puzzleRepository.save({
         country: savedCountry,
-        alternativeCountries
+        alternativeCountries,
+        deduplicationKey
     });
 
     // Create clues if needed

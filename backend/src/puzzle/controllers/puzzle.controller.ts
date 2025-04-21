@@ -108,7 +108,8 @@ export class PuzzleController {
             const puzzle = await this.puzzleService.create(
                 createPuzzleDto.countryCode,
                 createPuzzleDto.clues,
-                createPuzzleDto.alternativeCountries
+                createPuzzleDto.alternativeCountries,
+                createPuzzleDto.deduplicationKey
             );
             return new PuzzleResponseDto(puzzle);
         } catch (error) {

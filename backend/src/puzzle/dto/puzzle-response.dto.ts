@@ -8,6 +8,7 @@ export interface PuzzleInput {
     country: Country;
     clues?: ClueInput[];
     alternativeCountries?: string[][];
+    deduplicationKey: string;
 }
 
 export class PuzzleResponseDto {
@@ -33,6 +34,12 @@ export class PuzzleResponseDto {
     })
     alternativeCountries?: string[][];
 
+    @ApiProperty({
+        description: 'A unique key used to prevent duplicate puzzles',
+        example: 'abc123'
+    })
+    deduplicationKey: string;
+
     constructor(puzzle: PuzzleInput) {
         if (!puzzle) {
             return;
@@ -41,5 +48,6 @@ export class PuzzleResponseDto {
         this.country = puzzle.country;
         this.clues = puzzle.clues?.map(clue => new ClueResponseDto(clue)) || [];
         this.alternativeCountries = puzzle.alternativeCountries;
+        this.deduplicationKey = puzzle.deduplicationKey;
     }
 }

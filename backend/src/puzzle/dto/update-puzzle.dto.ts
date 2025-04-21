@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 import { HasMinLengthForInnerArrays } from '../validators/alternative-countries.validator';
 import { CreateClueDto } from './create-puzzle.dto';
@@ -30,4 +30,12 @@ export class UpdatePuzzleDto {
     @IsArray()
     @HasMinLengthForInnerArrays()
     alternativeCountries: string[][];
+
+    @ApiProperty({
+        description: 'A unique key used to prevent duplicate puzzles',
+        example: 'abc123',
+    })
+    @IsString()
+    @IsOptional()
+    deduplicationKey?: string;
 }

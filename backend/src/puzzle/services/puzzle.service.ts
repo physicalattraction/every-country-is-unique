@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
@@ -17,14 +18,26 @@ export class PuzzleService {
         private clueRepository: Repository<Clue>,
     ) { }
 
-    async findOne(id: number): Promise<Puzzle> {
+    async findOne(idOrHash: number | string): Promise<Puzzle> {
         return this.puzzleRepository.findOne({
-            where: { id },
+            where: typeof idOrHash === 'number' ? { id: idOrHash } : { deduplicationKey: idOrHash },
+            relations: ['country', 'clues']
+        });
+    }
+
+    async findOneByHash(deduplicationKey: string): Promise<Puzzle | null> {
+        return this.puzzleRepository.findOne({
+            where: { deduplicationKey },
             relations: ['country', 'clues'],
         });
     }
 
-    async create(countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
+    async create(countryCode: string, clues: IClue[], alternativeCountries: string[][], deduplicationKey: string): Promise<Puzzle> {
+        const existingPuzzle = await this.findOneByHash(deduplicationKey);
+        if (existingPuzzle) {
+            return existingPuzzle;
+        }
+
         if (!clues?.length) {
             throw new BadRequestException('A puzzle must have at least one clue');
         }
@@ -71,7 +84,8 @@ export class PuzzleService {
             // Save puzzle
             const savedPuzzle = await manager.save(Puzzle, {
                 country,
-                alternativeCountries
+                alternativeCountries,
+                deduplicationKey
             });
 
             // Create all clue entities at once
@@ -89,12 +103,7 @@ export class PuzzleService {
                 .execute();
 
             // Return the full puzzle with relations in a single query
-            return manager
-                .createQueryBuilder(Puzzle, 'puzzle')
-                .leftJoinAndSelect('puzzle.country', 'country')
-                .leftJoinAndSelect('puzzle.clues', 'clues')
-                .where('puzzle.id = :id', { id: savedPuzzle.id })
-                .getOne();
+            return this.findOne(savedPuzzle.id);
         });
 
         return puzzle;

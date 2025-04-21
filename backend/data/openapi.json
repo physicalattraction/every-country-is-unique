@@ -524,12 +524,18 @@
                 "type": "string"
               }
             }
+          },
+          "deduplicationKey": {
+            "type": "string",
+            "description": "A unique key used to prevent duplicate puzzles",
+            "example": "abc123"
           }
         },
         "required": [
           "id",
           "country",
-          "clues"
+          "clues",
+          "deduplicationKey"
         ]
       },
       "CreateClueDto": {
@@ -559,12 +565,18 @@
                 "type": "string"
               }
             }
+          },
+          "deduplicationKey": {
+            "type": "string",
+            "description": "A unique key used to prevent duplicate puzzles",
+            "example": "abc123"
           }
         },
         "required": [
           "countryCode",
           "clues",
-          "alternativeCountries"
+          "alternativeCountries",
+          "deduplicationKey"
         ]
       },
       "UpdatePuzzleDto": {
@@ -590,12 +602,18 @@
                 "type": "string"
               }
             }
+          },
+          "deduplicationKey": {
+            "type": "string",
+            "description": "A unique key used to prevent duplicate puzzles",
+            "example": "abc123"
           }
         },
         "required": [
           "countryCode",
           "clues",
-          "alternativeCountries"
+          "alternativeCountries",
+          "deduplicationKey"
         ]
       }
     }

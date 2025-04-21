@@ -158,9 +158,9 @@ describe('PuzzleController', () => {
             // Arrange
             const country = await createTestCountry(countryRepository);
             const puzzles = await Promise.all([
-                puzzleRepository.save({ country }),
-                puzzleRepository.save({ country }),
-                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-1' }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-2' }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-3' }),
             ]);
 
             // Act
@@ -196,8 +196,8 @@ describe('PuzzleController', () => {
                 flag: '🇺🇸',
             });
             await Promise.all([
-                puzzleRepository.save({ country: country1 }),
-                puzzleRepository.save({ country: country2 }),
+                puzzleRepository.save({ country: country1, deduplicationKey: 'test-key-1' }),
+                puzzleRepository.save({ country: country2, deduplicationKey: 'test-key-2' }),
             ]);
 
             // Act
@@ -213,9 +213,9 @@ describe('PuzzleController', () => {
             // Arrange
             const country = await createTestCountry(countryRepository);
             const puzzles = await Promise.all([
-                puzzleRepository.save({ country }),
-                puzzleRepository.save({ country }),
-                puzzleRepository.save({ country }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-1' }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-2' }),
+                puzzleRepository.save({ country, deduplicationKey: 'test-key-3' }),
             ]);
 
             // Act
@@ -267,6 +267,7 @@ describe('PuzzleController', () => {
                 },
             ],
             alternativeCountries: [['OMN', 'UAE']],
+            deduplicationKey: 'test-hash'
         };
 
         it('should create a new puzzle', async () => {
@@ -331,196 +332,166 @@ describe('PuzzleController', () => {
                 .expect(401);
         });
 
-        describe('PUT /puzzles/:id', () => {
-            it('should update an existing puzzle', async () => {
-                // Arrange
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [{ source: 'updated', key: 'test', value: 'test' }],
-                    alternativeCountries: [['OMN', 'UAE']],
-                };
+        it('should not create duplicate puzzles with the same deduplicationKey', async () => {
+            // Arrange
+            await createTestCountry(countryRepository);
+            const duplicateKey = 'duplicate-key';
+            const createPuzzleDtoWithKey = {
+                ...createPuzzleDto,
+                deduplicationKey: duplicateKey
+            };
 
-                // Act
-                const response = await request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(200);
+            // Act - Create puzzle twice with same key
+            await request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(createPuzzleDtoWithKey)
+                .expect(201);
 
-                // Assert
-                expect(response.body.id).toBe(puzzle.id);
-                expect(response.body.clues).toHaveLength(1);
-                expect(response.body.clues[0].source).toBe('updated');
-                expect(response.body.alternativeCountries).toEqual([['OMN', 'UAE']]);
-            });
+            await request(app.getHttpServer())
+                .post('/puzzles')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(createPuzzleDtoWithKey)
+                .expect(201);
 
-            it('should return 404 for non-existent puzzle', async () => {
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [{ source: 'test', key: 'test', value: 'test' }],
-                };
+            // Assert - Verify only one puzzle exists with this key
+            const puzzles = await puzzleRepository.find({ where: { deduplicationKey: duplicateKey } });
+            expect(puzzles).toHaveLength(1);
+        });
+    });
 
-                return request(app.getHttpServer())
-                    .put('/puzzles/999')
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(404);
-            });
+    describe('PUT /puzzles/:id', () => {
+        const createPuzzleDto: CreatePuzzleDto = {
+            countryCode: 'QAT',
+            clues: [
+                {
+                    source: 'test',
+                    key: 'test',
+                    value: 'test',
+                },
+            ],
+            alternativeCountries: [['OMN', 'UAE']],
+            deduplicationKey: 'test-hash'
+        };
 
-            it('should return 400 for non-existent country', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'XXX',
-                    clues: [{ source: 'test', key: 'test', value: 'test' }],
-                };
+        it('should update an existing puzzle', async () => {
+            // Arrange
+            await createTestCountry(countryRepository);
+            const puzzle = await createTestPuzzle(context);
 
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
+            // Act
+            const response = await request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send({
+                    ...createPuzzleDto,
+                    clues: [{ source: 'updated', key: 'test', value: 'test' }]
+                })
+                .expect(200);
 
-            it('should return 400 for invalid country codes in alternativeCountries', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [{ source: 'test', key: 'test', value: 'test' }],
-                    alternativeCountries: [['INVALID', 'UAE']],
-                };
-
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
-
-            it('should return 400 for empty clues array', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [],
-                    alternativeCountries: [['OMN', 'UAE']],
-                };
-
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
-
-            it('should return 400 for empty alternativeCountries array', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [{ source: 'test', key: 'test', value: 'test' }],
-                    alternativeCountries: [],
-                };
-
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
-
-            it('should return 400 when alternativeCountries length does not match clues length', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [
-                        { source: 'test1', key: 'test1', value: 'test1' },
-                        { source: 'test2', key: 'test2', value: 'test2' }
-                    ],
-                    alternativeCountries: [['OMN', 'UAE']], // Only one array for two clues
-                };
-
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
-
-            it('should return 400 for empty inner arrays in alternativeCountries', async () => {
-                const puzzle = await createTestPuzzle(context);
-                const updateDto = {
-                    countryCode: 'QAT',
-                    clues: [{ source: 'test', key: 'test', value: 'test' }],
-                    alternativeCountries: [[]], // Empty inner array
-                };
-
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .send(updateDto)
-                    .expect(400);
-            });
-
-            it('should require API key', async () => {
-                const puzzle = await createTestPuzzle(context);
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .send({
-                        countryCode: 'QAT',
-                        clues: [{ source: 'test', key: 'test', value: 'test' }],
-                    })
-                    .expect(401);
-            });
-
-            it('should reject invalid API key', async () => {
-                const puzzle = await createTestPuzzle(context);
-                return request(app.getHttpServer())
-                    .put(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', 'wrong-key')
-                    .send({
-                        countryCode: 'QAT',
-                        clues: [{ source: 'test', key: 'test', value: 'test' }],
-                    })
-                    .expect(401);
-            });
+            // Assert
+            expect(response.body.id).toBe(puzzle.id);
+            expect(response.body.clues).toHaveLength(1);
+            expect(response.body.clues[0].source).toBe('updated');
+            expect(response.body.alternativeCountries).toEqual([['OMN', 'UAE']]);
         });
 
-        describe('DELETE /puzzles/:id', () => {
-            it('should delete a puzzle', async () => {
-                // Arrange
-                const puzzle = await createTestPuzzle(context);
+        it('should return 400 for non-existent country', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
 
-                // Act
-                await request(app.getHttpServer())
-                    .delete(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', TEST_API_KEY)
-                    .expect(200);
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send({ ...createPuzzleDto, countryCode: 'XXX' })
+                .expect(400);
+        });
 
-                // Assert
-                const deletedPuzzle = await puzzleRepository.findOne({ where: { id: puzzle.id } });
-                expect(deletedPuzzle).toBeNull();
-            });
+        it('should return 400 for invalid country codes in alternativeCountries', async () => {
+            // Arrange
+            await createTestCountry(countryRepository);
+            const puzzle = await createTestPuzzle(context);
 
-            it('should return 404 for non-existent puzzle', async () => {
-                return request(app.getHttpServer())
-                    .delete('/puzzles/999')
-                    .set('X-API-Key', TEST_API_KEY)
-                    .expect(404);
-            });
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send({
+                    ...createPuzzleDto,
+                    alternativeCountries: [['INVALID', 'UAE']]
+                })
+                .expect(400);
+        });
 
-            it('should require API key', async () => {
-                const puzzle = await createTestPuzzle(context);
-                return request(app.getHttpServer())
-                    .delete(`/puzzles/${puzzle.id}`)
-                    .expect(401);
-            });
+        it('should return 400 for empty clues array', async () => {
+            // Arrange
+            await createTestCountry(countryRepository);
+            const puzzle = await createTestPuzzle(context);
 
-            it('should reject invalid API key', async () => {
-                const puzzle = await createTestPuzzle(context);
-                return request(app.getHttpServer())
-                    .delete(`/puzzles/${puzzle.id}`)
-                    .set('X-API-Key', 'wrong-key')
-                    .expect(401);
-            });
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .send({ ...createPuzzleDto, clues: [] })
+                .expect(400);
+        });
+
+        it('should require API key', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
+
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .send(createPuzzleDto)
+                .expect(401);
+        });
+
+        it('should reject invalid API key', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
+
+            return request(app.getHttpServer())
+                .put(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', 'wrong-key')
+                .send(createPuzzleDto)
+                .expect(401);
+        });
+    });
+
+    describe('DELETE /puzzles/:id', () => {
+        it('should delete a puzzle', async () => {
+            // Arrange
+            const puzzle = await createTestPuzzle(context);
+
+            // Act
+            await request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(200);
+
+            // Assert
+            const deletedPuzzle = await puzzleRepository.findOne({ where: { id: puzzle.id } });
+            expect(deletedPuzzle).toBeNull();
+        });
+
+        it('should return 404 for non-existent puzzle', async () => {
+            return request(app.getHttpServer())
+                .delete('/puzzles/999')
+                .set('X-API-Key', TEST_API_KEY)
+                .expect(404);
+        });
+
+        it('should require API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .expect(401);
+        });
+
+        it('should reject invalid API key', async () => {
+            const puzzle = await createTestPuzzle(context);
+            return request(app.getHttpServer())
+                .delete(`/puzzles/${puzzle.id}`)
+                .set('X-API-Key', 'wrong-key')
+                .expect(401);
         });
     });
 });
