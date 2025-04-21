@@ -11,7 +11,7 @@ export function Header({ currentPage }: HeaderProps) {
       <div className="h-36">
         <OptimizedImage
           src="/images/ECU_header_01.jpeg"
-          alt="Ecuadorian landscape"
+          alt="A majestic throne scene with crowned lions, surrounded by mythical creatures, warriors, and swirling chaos under a glowing moon."
           width={1920}
           height={1080}
           className="object-cover w-full h-full"

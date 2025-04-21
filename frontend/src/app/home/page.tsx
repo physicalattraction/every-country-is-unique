@@ -12,8 +12,8 @@ export default function HomePage() {
                     <div className="space-y-6">
                         <h2 className="text-3xl font-bold text-gray-800">Every Country Is Unique</h2>
                         <p className="text-lg text-gray-600">
-                            Welcome to our work in progress! Test your knowledge with our unique country-guessing puzzles.
-                            Each puzzle presents you with distinctive clues about a country - from its geographical features
+                            Welcome to our unique country-guessing game! Test your knowledge with our distinctive puzzles.
+                            Each puzzle presents you with clues about a country - from its geographical features
                             and population to interesting facts about its culture, sports achievements, and more.
                         </p>
                         <p className="text-lg text-gray-600">
@@ -26,7 +26,7 @@ export default function HomePage() {
                         <div className="w-1/2 relative aspect-square rounded-lg overflow-hidden shadow-xl">
                             <OptimizedImage
                                 src="/images/ECU_01.jpeg"
-                                alt="Ecuadorian scenery"
+                                alt="A bold, stylized portrait of a bearded man surrounded by vibrant, radiating flags from around the world."
                                 width={800}
                                 height={800}
                                 className="object-cover w-full h-full"
