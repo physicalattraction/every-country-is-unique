@@ -134,6 +134,22 @@
         ]
       }
     },
+    "/health": {
+      "get": {
+        "description": "Returns the health status of the API",
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API is healthy"
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/puzzles": {
       "get": {
         "description": "Retrieves a paginated list of puzzles with optional filtering",
@@ -498,6 +514,16 @@
             "items": {
               "$ref": "#/components/schemas/ClueResponseDto"
             }
+          },
+          "alternativeCountries": {
+            "type": "array",
+            "description": "For each clue, an array of country codes that would match all other clues except this one",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [
@@ -523,11 +549,22 @@
             "items": {
               "$ref": "#/components/schemas/CreateClueDto"
             }
+          },
+          "alternativeCountries": {
+            "type": "array",
+            "description": "For each clue, an array of country codes that would match all other clues except this one. Each inner array must contain at least one country code.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [
           "countryCode",
-          "clues"
+          "clues",
+          "alternativeCountries"
         ]
       },
       "UpdatePuzzleDto": {
@@ -543,11 +580,22 @@
             "items": {
               "$ref": "#/components/schemas/CreateClueDto"
             }
+          },
+          "alternativeCountries": {
+            "type": "array",
+            "description": "For each clue, an array of country codes that would match all other clues except this one. Each inner array must contain at least one country code.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [
           "countryCode",
-          "clues"
+          "clues",
+          "alternativeCountries"
         ]
       }
     }

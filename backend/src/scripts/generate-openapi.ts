@@ -3,11 +3,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { AppModule } from '../app.module';
 import { getDataPath } from '../utils/path.utils';
+import { OpenApiAppModule } from './openapi-app.module';
 
 async function generateOpenApiSpec() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(OpenApiAppModule);
 
     const config = new DocumentBuilder()
         .setTitle('Every Country Is Unique API')
