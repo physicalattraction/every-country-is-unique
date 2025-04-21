@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
@@ -33,11 +32,13 @@ export class PuzzleService {
     }
 
     async create(countryCode: string, clues: IClue[], alternativeCountries: string[][], deduplicationKey: string): Promise<Puzzle> {
+        // Check if puzzle with this deduplication key already exists, if so, return it
         const existingPuzzle = await this.findOneByHash(deduplicationKey);
         if (existingPuzzle) {
             return existingPuzzle;
         }
 
+        // Validate the puzzle data
         if (!clues?.length) {
             throw new BadRequestException('A puzzle must have at least one clue');
         }
@@ -55,7 +56,6 @@ export class PuzzleService {
 
         // Find target country in the list
         const country = allCountries.find(c => c.code === countryCode);
-
         if (!country) {
             throw new BadRequestException(`Country with code ${countryCode} not found`);
         }
@@ -72,7 +72,6 @@ export class PuzzleService {
                 }
             }
         }
-
         if (invalidCodes.size > 0) {
             throw new BadRequestException(
                 `Invalid country codes found: ${Array.from(invalidCodes).join(', ')}`
@@ -80,9 +79,9 @@ export class PuzzleService {
         }
 
         // Use a single transaction for both puzzle and clue creation
-        const puzzle = await this.puzzleRepository.manager.transaction(async manager => {
+        const savedPuzzle = await this.puzzleRepository.manager.transaction(async manager => {
             // Save puzzle
-            const savedPuzzle = await manager.save(Puzzle, {
+            const puzzle = await manager.save(Puzzle, {
                 country,
                 alternativeCountries,
                 deduplicationKey
@@ -91,7 +90,7 @@ export class PuzzleService {
             // Create all clue entities at once
             const clueEntities = clues.map(clue => ({
                 ...clue,
-                puzzle: savedPuzzle,
+                puzzle,
             }));
 
             // Bulk save all clues
@@ -102,11 +101,11 @@ export class PuzzleService {
                 .values(clueEntities)
                 .execute();
 
-            // Return the full puzzle with relations in a single query
-            return this.findOne(savedPuzzle.id);
+            return puzzle;
         });
 
-        return puzzle;
+        // Fetch the full puzzle with relations using the service method
+        return this.findOne(savedPuzzle.id);
     }
 
     async update(id: number, countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
@@ -218,7 +217,6 @@ export class PuzzleService {
         if (!puzzle) {
             throw new NotFoundException('No puzzle found');
         }
-
         return puzzle;
     }
 }
