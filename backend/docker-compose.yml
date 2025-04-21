@@ -6,10 +6,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - BUILD_DATE=${BUILD_DATE}
+        - VCS_REF=${VCS_REF}
     ports:
       - "${PORT:-3001}:3001"
     volumes:
-      - ./:/usr/src/app
       - /usr/src/app/node_modules
     env_file:
       - ./environment/.env.${NODE_ENV:-development}
