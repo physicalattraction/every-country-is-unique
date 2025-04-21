@@ -3,6 +3,21 @@
 # Exit on error
 set -e
 
+# Parse arguments
+RUN_MIGRATIONS=false
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+    -m | --migrate)
+        RUN_MIGRATIONS=true
+        shift
+        ;;
+    *)
+        echo "Unknown parameter: $1"
+        exit 1
+        ;;
+    esac
+done
+
 # Get current git commit hash
 GIT_HASH=$(git rev-parse HEAD)
 GIT_DATE=$(git show -s --format=%ci HEAD)
@@ -26,7 +41,31 @@ git pull
 echo "Building containers without cache..."
 ./docker-compose.sh build --no-cache --progress=plain
 
-echo "Starting containers..."
+if [ "$RUN_MIGRATIONS" = true ]; then
+    echo "Starting containers in migration mode..."
+    # Start the database
+    ./docker-compose.sh up -d postgres
+
+    # Start the API container with a temporary command that keeps it alive
+    docker-compose run -d --name api-every-country-is-unique api sleep infinity
+
+    # Wait a bit for the database to be ready
+    echo "Waiting for database to be ready..."
+    sleep 5
+
+    echo "Running database migrations..."
+    if ! docker exec api-every-country-is-unique npm run migration:run; then
+        echo "Error: Migrations failed"
+        docker rm -f api-every-country-is-unique
+        exit 1
+    fi
+    echo "Migrations completed successfully!"
+
+    # Clean up the temporary container
+    docker rm -f api-every-country-is-unique
+fi
+
+echo "Starting containers normally..."
 ./docker-compose.sh up -d
 
 # Verify the running container
