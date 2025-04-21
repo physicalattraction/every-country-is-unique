@@ -35,8 +35,14 @@ export default function CountriesPage() {
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const data = await countryService.getAllCountries(searchTerm);
-        setCountries(data);
+        const data = await countryService.getAllCountries();
+        const filtered = searchTerm
+          ? data.filter(country =>
+            country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            country.code.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+          : data;
+        setCountries(filtered);
       } catch (err) {
         console.error('Error fetching countries:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch countries');
