@@ -1,8 +1,8 @@
 'use client';
 
 import { countryService } from '@/services/countryService';
-import { Puzzle, puzzleService } from '@/services/puzzleService';
-import { CountryResponseDto } from '@/services/types';
+import { puzzleService } from '@/services/puzzleService';
+import { CountryResponseDto, PuzzleResponseDto } from '@/services/types';
 import { formatClue } from '@/utils/formatting';
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
@@ -16,7 +16,7 @@ function hasTouchInput() {
 }
 
 export default function EveryCountryIsUniqueQuiz() {
-    const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
+    const [puzzle, setPuzzle] = useState<PuzzleResponseDto | null>(null);
     const [formattedClues, setFormattedClues] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [suggestions, setSuggestions] = useState<CountryResponseDto[]>([]);
@@ -115,7 +115,7 @@ export default function EveryCountryIsUniqueQuiz() {
     // Update formatted clues when puzzle or countries change
     useEffect(() => {
         if (puzzle && countries.length > 0) {
-            const formatted = puzzle.clues.map(clue => formatClue(clue, countries));
+            const formatted = puzzle.clues.map((clue: { source: string; key: string; value: string }) => formatClue(clue, countries));
             setFormattedClues(formatted);
         }
     }, [puzzle, countries]);
@@ -216,12 +216,29 @@ export default function EveryCountryIsUniqueQuiz() {
                     {formattedClues.map((formattedClue, index) => (
                         <div
                             key={index}
-                            className="p-6 bg-white rounded-lg shadow-md border border-gray-200"
+                            className="p-6 bg-white rounded-lg shadow-md border border-gray-200 relative group"
                         >
                             <p className="text-lg text-gray-800">
                                 <span className="font-semibold text-blue-600">Clue {index + 1}:</span>{' '}
                                 {formattedClue}
                             </p>
+                            {isCorrect !== null && puzzle.alternativeCountries[index] && (
+                                <div className="absolute inset-0 bg-white bg-opacity-95 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-4 z-50">
+                                    <p className="text-sm font-semibold text-gray-700 mb-2">Without this clue, these countries would also match:</p>
+                                    <div className="bg-white shadow-sm rounded-lg p-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            {puzzle.alternativeCountries[index].map((countryCode: string) => {
+                                                const country = countries.find(c => c.code === countryCode);
+                                                return (
+                                                    <span key={countryCode} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                        {country?.flag} {country?.name || countryCode}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

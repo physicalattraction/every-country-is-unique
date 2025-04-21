@@ -15,4 +15,16 @@ export interface CountryResponseDto {
   flag: string;
   currencies?: CurrencyDto[];
   languages?: LanguageDto[];
+}
+
+export interface PuzzleResponseDto {
+  id: number;
+  country: CountryResponseDto;
+  clues: {
+    source: string;
+    key: string;
+    value: string;
+  }[];
+  alternativeCountries: string[][];
+  deduplicationKey: string;
 } 

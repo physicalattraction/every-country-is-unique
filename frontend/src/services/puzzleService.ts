@@ -1,26 +1,5 @@
 import { apiConfig } from '@/config/api';
-
-export interface Clue {
-    source: string;
-    key: string;
-    value: string;
-}
-
-export interface ClueResponseDto {
-    source: string;
-    key: string;
-    value: string;
-}
-
-export interface Puzzle {
-    id: number;
-    country: {
-        code: string;
-        name: string;
-        flag: string;
-    };
-    clues: Clue[];
-}
+import { PuzzleResponseDto } from './types';
 
 class PuzzleService {
     private baseUrl: string;
@@ -30,7 +9,7 @@ class PuzzleService {
         console.log('PuzzleService initialized with baseUrl:', this.baseUrl);
     }
 
-    async getRandomPuzzle(): Promise<Puzzle> {
+    async getRandomPuzzle(): Promise<PuzzleResponseDto> {
         try {
             const url = `${this.baseUrl}/puzzles/random`;
 
@@ -48,7 +27,7 @@ class PuzzleService {
         }
     }
 
-    async getPuzzleById(id: number): Promise<Puzzle> {
+    async getPuzzleById(id: number): Promise<PuzzleResponseDto> {
         try {
             const url = `${this.baseUrl}/puzzles/${id}`;
 
