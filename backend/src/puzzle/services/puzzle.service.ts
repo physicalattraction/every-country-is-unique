@@ -109,6 +109,7 @@ export class PuzzleService {
     }
 
     async update(id: number, countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
+        // Validate the puzzle data
         const puzzle = await this.findOne(id);
         if (!puzzle) {
             throw new NotFoundException(`Puzzle with id ${id} not found`);
@@ -155,24 +156,37 @@ export class PuzzleService {
             );
         }
 
-        // Update puzzle country and alternativeCountries
-        puzzle.country = country;
-        puzzle.alternativeCountries = alternativeCountries;
-        await this.puzzleRepository.save(puzzle);
+        // Use a transaction for atomic updates
+        const updatedPuzzle = await this.puzzleRepository.manager.transaction(async manager => {
+            // Update puzzle
+            const savedPuzzle = await manager.save(Puzzle, {
+                ...puzzle,
+                country,
+                alternativeCountries
+            });
 
-        // Delete existing clues
-        await this.clueRepository.delete({ puzzle: { id } });
+            // Delete existing clues
+            await manager.delete(Clue, { puzzle: { id } });
 
-        // Create new clues
-        const clueEntities = clues.map(clue =>
-            this.clueRepository.create({
+            // Create new clues
+            const clueEntities = clues.map(clue => ({
                 ...clue,
-                puzzle,
-            }),
-        );
-        await this.clueRepository.save(clueEntities);
+                puzzle: savedPuzzle,
+            }));
 
-        return this.findOne(id);
+            // Bulk save all clues
+            await manager
+                .createQueryBuilder()
+                .insert()
+                .into(Clue)
+                .values(clueEntities)
+                .execute();
+
+            return savedPuzzle;
+        });
+
+        // Fetch the full puzzle with relations using the service method
+        return this.findOne(updatedPuzzle.id);
     }
 
     async delete(id: number): Promise<void> {
