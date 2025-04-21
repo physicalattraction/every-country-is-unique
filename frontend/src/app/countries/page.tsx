@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/Header';
-import { CountryTable } from '@/components/CountryTable';
 import { CountryDetails } from '@/components/CountryDetails';
+import { CountryTable } from '@/components/CountryTable';
+import { Header } from '@/components/Header';
 import { countryService } from '@/services/countryService';
 import { CountryResponseDto } from '@/services/types';
+import { useEffect, useState } from 'react';
 
 export default function CountriesPage() {
   const [countries, setCountries] = useState<CountryResponseDto[]>([]);
@@ -100,7 +100,7 @@ export default function CountriesPage() {
                   )}
                 </div>
                 <div className="max-h-[calc(100vh-16rem)] overflow-y-auto">
-                  <CountryTable 
+                  <CountryTable
                     countries={countries}
                     onSelectCountry={handleCountrySelect}
                     selectedCode={selectedCountry?.code}

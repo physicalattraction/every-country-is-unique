@@ -33,17 +33,14 @@ class PuzzleService {
     async getRandomPuzzle(): Promise<Puzzle> {
         try {
             const url = `${this.baseUrl}/puzzles/random`;
-            console.log('Fetching random puzzle from:', url);
 
             const response = await fetch(url);
-            console.log('Response status:', response.status);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch random puzzle: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            console.log('Received puzzle:', data);
             return data;
         } catch (error) {
             console.error('Error fetching random puzzle:', error);
@@ -54,10 +51,8 @@ class PuzzleService {
     async getPuzzleById(id: number): Promise<Puzzle> {
         try {
             const url = `${this.baseUrl}/puzzles/${id}`;
-            console.log('Fetching puzzle from:', url);
 
             const response = await fetch(url);
-            console.log('Response status:', response.status);
 
             if (!response.ok) {
                 if (response.status === 404) {
@@ -67,7 +62,6 @@ class PuzzleService {
             }
 
             const data = await response.json();
-            console.log('Received puzzle:', data);
             return data;
         } catch (error) {
             console.error('Error fetching puzzle:', error);

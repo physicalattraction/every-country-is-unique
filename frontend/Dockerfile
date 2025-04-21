@@ -4,6 +4,7 @@ FROM node:20-alpine AS builder
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG NEXT_PUBLIC_API_URL
 
 # Add labels
 LABEL org.label-schema.build-date=$BUILD_DATE \
@@ -15,22 +16,32 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 
 WORKDIR /usr/src/app
 
+# Copy package files first for better caching
 COPY package*.json ./
 
 RUN npm ci
 
+# Copy all source code
 COPY . .
 
+# Build with environment variables
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
 FROM node:20-alpine AS runner
 
 WORKDIR /usr/src/app
 
+# Copy only the necessary files for production
 COPY --from=builder /usr/src/app/package*.json ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/.next ./.next
 COPY --from=builder /usr/src/app/public ./public
+COPY --from=builder /usr/src/app/src ./src
+COPY --from=builder /usr/src/app/next.config.mjs ./
+COPY --from=builder /usr/src/app/tsconfig.json ./
+COPY --from=builder /usr/src/app/postcss.config.js ./
+COPY --from=builder /usr/src/app/tailwind.config.js ./
 
 EXPOSE ${PORT:-3000}
 

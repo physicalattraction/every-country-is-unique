@@ -22,17 +22,13 @@ class CountryService {
         url.searchParams.append('search', search);
       }
 
-      console.log('Fetching countries from:', url.toString());
-
       const response = await fetch(url);
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch countries: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Received data:', data);
       return data;
     } catch (error) {
       console.error('Error fetching countries:', error);
@@ -43,10 +39,8 @@ class CountryService {
   async getCountryByCode(code: string): Promise<CountryResponseDto> {
     try {
       const url = `${this.baseUrl}${apiConfig.endpoints.countries}/${code}`;
-      console.log('Fetching country from:', url);
 
       const response = await fetch(url);
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -56,7 +50,6 @@ class CountryService {
       }
 
       const data = await response.json();
-      console.log('Received data:', data);
       return data;
     } catch (error) {
       console.error('Error fetching country:', error);

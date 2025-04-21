@@ -9,6 +9,7 @@ services:
       args:
         - BUILD_DATE=${BUILD_DATE}
         - VCS_REF=${VCS_REF}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

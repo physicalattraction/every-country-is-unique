@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { countryService } from '@/services/countryService';
 import { CountryResponseDto } from '@/services/types';
+import { useEffect, useState } from 'react';
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -109,8 +109,8 @@ export default function CountryByFlagQuiz() {
                   disabled={selectedAnswer !== null}
                   className={`
                     p-4 text-lg font-medium rounded-lg transition-colors
-                    ${selectedAnswer === null 
-                      ? 'bg-white hover:bg-gray-50 text-gray-800' 
+                    ${selectedAnswer === null
+                      ? 'bg-white hover:bg-gray-50 text-gray-800'
                       : country.code === currentCountry.code
                         ? 'bg-green-500 text-white'
                         : selectedAnswer === country.code

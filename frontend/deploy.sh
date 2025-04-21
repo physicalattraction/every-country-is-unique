@@ -9,6 +9,15 @@ GIT_DATE=$(git show -s --format=%ci HEAD)
 
 echo "Deploying commit: $GIT_HASH from $GIT_DATE"
 
+# This command will:
+# Remove all stopped containers (-a)
+# Remove all unused images (-f)
+# Remove all unused volumes (--volumes)
+# Remove all unused networks
+# Remove all unused build cache
+echo "Cleaning up Docker system..."
+docker system prune -af --volumes
+
 echo "Stopping and removing containers..."
 ./docker-compose.sh down -v # -v removes volumes
 
@@ -34,7 +43,7 @@ echo "Verifying container..."
 MAX_ATTEMPTS=60
 ATTEMPT=1
 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-    if docker logs web-every-country-is-unique 2>&1 | grep -q "ready - started server"; then
+    if docker logs web-every-country-is-unique 2>&1 | grep -q "Ready in"; then
         echo "Application is running successfully!"
         break
     fi
