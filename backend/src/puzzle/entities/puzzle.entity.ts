@@ -1,4 +1,4 @@
-import { Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Clue } from './clue.entity';
@@ -12,6 +12,9 @@ export class Puzzle {
     @JoinColumn({ name: 'country_code', referencedColumnName: 'code' })
     country: Country;
 
-    @OneToMany(() => Clue, clue => clue.puzzle)
+    @OneToMany(() => Clue, clue => clue.puzzle, { cascade: true })
     clues: Clue[];
+
+    @Column('simple-json', { nullable: true })
+    alternativeCountries: string[][];
 }

@@ -7,6 +7,7 @@ export interface PuzzleInput {
     id: number;
     country: Country;
     clues?: ClueInput[];
+    alternativeCountries?: string[][];
 }
 
 export class PuzzleResponseDto {
@@ -19,6 +20,19 @@ export class PuzzleResponseDto {
     @ApiProperty({ description: 'The clues associated with the puzzle', type: [ClueResponseDto] })
     clues: ClueResponseDto[];
 
+    @ApiProperty({
+        description: 'For each clue, an array of country codes that would match all other clues except this one',
+        type: 'array',
+        items: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        required: false
+    })
+    alternativeCountries?: string[][];
+
     constructor(puzzle: PuzzleInput) {
         if (!puzzle) {
             return;
@@ -26,5 +40,6 @@ export class PuzzleResponseDto {
         this.id = puzzle.id;
         this.country = puzzle.country;
         this.clues = puzzle.clues?.map(clue => new ClueResponseDto(clue)) || [];
+        this.alternativeCountries = puzzle.alternativeCountries;
     }
 }

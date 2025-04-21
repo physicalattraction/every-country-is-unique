@@ -1,11 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Currency } from '../../country/entities/currency.entity';
 import { Language } from '../../country/entities/language.entity';
+import { QueryCounter } from '../../utils/query-counter';
 import { Clue } from '../entities/clue.entity';
 import { Puzzle } from '../entities/puzzle.entity';
 import { PuzzleService } from './puzzle.service';
@@ -15,8 +16,10 @@ describe('PuzzleService', () => {
     let puzzleRepository: Repository<Puzzle>;
     let clueRepository: Repository<Clue>;
     let countryRepository: Repository<Country>;
+    let dataSource: DataSource;
+    let queryCounter: QueryCounter;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
         const module: TestingModule = await Test.createTestingModule({
             imports: [
                 TypeOrmModule.forRoot({
@@ -53,6 +56,53 @@ describe('PuzzleService', () => {
         puzzleRepository = module.get<Repository<Puzzle>>(Puzzle);
         clueRepository = module.get<Repository<Clue>>(Clue);
         countryRepository = module.get<Repository<Country>>(Country);
+        dataSource = module.get<DataSource>(getDataSourceToken());
+        queryCounter = new QueryCounter(dataSource);
+
+        // Create test countries
+        await countryRepository.save([
+            {
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            },
+            {
+                code: 'OMN',
+                name: 'Oman',
+                flag: '🇴🇲',
+            },
+            {
+                code: 'UAE',
+                name: 'United Arab Emirates',
+                flag: '🇦🇪',
+            },
+            {
+                code: 'BHR',
+                name: 'Bahrain',
+                flag: '🇧🇭',
+            },
+            {
+                code: 'KWT',
+                name: 'Kuwait',
+                flag: '🇰🇼',
+            },
+            {
+                code: 'SAU',
+                name: 'Saudi Arabia',
+                flag: '🇸🇦',
+            },
+            {
+                code: 'YEM',
+                name: 'Yemen',
+                flag: '🇾🇪',
+            }
+        ]);
+    });
+
+    beforeEach(async () => {
+        // Clear all puzzles and clues before each test
+        await clueRepository.delete({});
+        await puzzleRepository.delete({});
     });
 
     it('should be defined', () => {
@@ -126,11 +176,83 @@ describe('PuzzleService', () => {
             });
 
             // Act & Assert
-            await expect(service.create('QAT', [])).rejects.toThrow(BadRequestException);
-            await expect(service.create('QAT', [])).rejects.toThrow('A puzzle must have at least one clue');
+            await expect(service.create('QAT', [], [])).rejects.toThrow(BadRequestException);
+            await expect(service.create('QAT', [], [])).rejects.toThrow('A puzzle must have at least one clue');
         });
 
-        it('should create a puzzle with clues', async () => {
+        it('should throw error when alternativeCountries array is empty', async () => {
+            // Arrange
+            await countryRepository.save({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+
+            const clues = [
+                {
+                    source: 'name',
+                    key: 'has_nr_letters_lte',
+                    value: '5',
+                },
+            ];
+
+            // Act & Assert
+            await expect(service.create('QAT', clues, [])).rejects.toThrow(BadRequestException);
+            await expect(service.create('QAT', clues, [])).rejects.toThrow('Alternative countries array must have the same length as clues array');
+        });
+
+        it('should throw error when alternativeCountries array length does not match clues length', async () => {
+            // Arrange
+            await countryRepository.save({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+
+            const clues = [
+                {
+                    source: 'name',
+                    key: 'has_nr_letters_lte',
+                    value: '5',
+                },
+            ];
+
+            const alternativeCountries = [
+                ['OMN', 'UAE'],
+                ['BHR', 'KWT'],  // Extra array that doesn't match clues length
+            ];
+
+            // Act & Assert
+            await expect(service.create('QAT', clues, alternativeCountries)).rejects.toThrow(BadRequestException);
+            await expect(service.create('QAT', clues, alternativeCountries)).rejects.toThrow('Alternative countries array must have the same length as clues array');
+        });
+
+        it('should throw error when alternativeCountries contains empty inner array', async () => {
+            // Arrange
+            await countryRepository.save({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+
+            const clues = [
+                {
+                    source: 'name',
+                    key: 'has_nr_letters_lte',
+                    value: '5',
+                },
+            ];
+
+            const alternativeCountries = [
+                [],  // Empty inner array
+            ];
+
+            // Act & Assert
+            await expect(service.create('QAT', clues, alternativeCountries)).rejects.toThrow(BadRequestException);
+            await expect(service.create('QAT', clues, alternativeCountries)).rejects.toThrow('Each inner array in alternativeCountries must contain at least one element');
+        });
+
+        it('should create a puzzle with clues and alternativeCountries', async () => {
             // Arrange
             const country = await countryRepository.save({
                 code: 'QAT',
@@ -151,13 +273,19 @@ describe('PuzzleService', () => {
                 },
             ];
 
+            const alternativeCountries = [
+                ['OMN', 'UAE'],
+                ['BHR', 'KWT'],
+            ];
+
             // Act
-            const result = await service.create('QAT', clues);
+            const result = await service.create('QAT', clues, alternativeCountries);
 
             // Assert
             expect(result).toBeDefined();
             expect(result.country).toEqual(country);
             expect(result.clues).toHaveLength(2);
+            expect(result.alternativeCountries).toEqual(alternativeCountries);
             expect(result.clues[0]).toMatchObject({
                 source: 'name',
                 key: 'has_nr_letters_lte',
@@ -171,9 +299,20 @@ describe('PuzzleService', () => {
         });
 
         it('should throw error for non-existent country code', async () => {
-            // Act & Assert
-            await expect(service.create('XXX', [{ source: 'test', key: 'key1', value: 'value1' }])).rejects.toThrow(
+            await expect(service.create('XXX', [{ source: 'test', key: 'test', value: 'test' }], [['OMN', 'UAE']])).rejects.toThrow(
                 'Country with code XXX not found',
+            );
+        });
+
+        it('should throw error for invalid country codes in alternativeCountries', async () => {
+            await countryRepository.save({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+
+            await expect(service.create('QAT', [{ source: 'test', key: 'test', value: 'test' }], [['INVALID', 'UAE']])).rejects.toThrow(
+                'Invalid country codes found: INVALID',
             );
         });
 
@@ -192,7 +331,7 @@ describe('PuzzleService', () => {
             ];
 
             // Act
-            const result = await service.create('QAT', clues);
+            const result = await service.create('QAT', clues, [['OMN', 'UAE'], ['BHR', 'KWT'], ['SAU', 'YEM']]);
 
             // Assert
             expect(result.clues).toHaveLength(3);
@@ -210,8 +349,8 @@ describe('PuzzleService', () => {
             });
 
             // Act
-            const puzzle1 = await service.create('QAT', [{ source: 'test', key: 'key1', value: 'value1' }]);
-            const puzzle2 = await service.create('QAT', [{ source: 'test', key: 'key2', value: 'value2' }]);
+            const puzzle1 = await service.create('QAT', [{ source: 'test', key: 'key1', value: 'value1' }], [['OMN', 'UAE']]);
+            const puzzle2 = await service.create('QAT', [{ source: 'test', key: 'key2', value: 'value2' }], [['BHR', 'KWT']]);
 
             // Assert
             expect(puzzle1.id).not.toBe(puzzle2.id);
@@ -219,6 +358,48 @@ describe('PuzzleService', () => {
             expect(puzzle2.country.code).toBe('QAT');
             expect(puzzle1.clues[0].value).toBe('value1');
             expect(puzzle2.clues[0].value).toBe('value2');
+        });
+
+        it('should make exactly 6 database queries when creating a puzzle', async () => {
+            // Arrange
+            await countryRepository.save({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
+
+            const clues = [
+                {
+                    source: 'name',
+                    key: 'has_nr_letters_lte',
+                    value: '5',
+                },
+                {
+                    source: 'population',
+                    key: 'population_lt',
+                    value: '3000000',
+                },
+            ];
+
+            const alternativeCountries = [
+                ['OMN', 'UAE'],
+                ['BHR', 'KWT'],
+            ];
+
+            // Act
+            queryCounter.startCounting();
+            await service.create('QAT', clues, alternativeCountries);
+            const queryCount = queryCounter.stopQueryCount();
+
+            // Assert
+            // The create operation makes 6 queries:
+            // 1. SELECT "Country"."code" - Get all countries (including target country)
+            // 2. BEGIN TRANSACTION
+            // 3. INSERT INTO "puzzle" - Insert puzzle
+            // 4. INSERT INTO "clue" - Bulk insert clues
+            // 5. SELECT "puzzle"."id" - Get full puzzle data with relations in a single query
+            // 6. COMMIT
+            expect(queryCounter.verifyQueryCount(6)).toBe(true);
         });
     });
 });

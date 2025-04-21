@@ -105,7 +105,11 @@ export class PuzzleController {
     })
     async create(@Body() createPuzzleDto: CreatePuzzleDto): Promise<PuzzleResponseDto> {
         try {
-            const puzzle = await this.puzzleService.create(createPuzzleDto.countryCode, createPuzzleDto.clues);
+            const puzzle = await this.puzzleService.create(
+                createPuzzleDto.countryCode,
+                createPuzzleDto.clues,
+                createPuzzleDto.alternativeCountries
+            );
             return new PuzzleResponseDto(puzzle);
         } catch (error) {
             if (error.message.includes('Country with code')) {
@@ -141,6 +145,7 @@ export class PuzzleController {
                 Number(id),
                 updatePuzzleDto.countryCode,
                 updatePuzzleDto.clues,
+                updatePuzzleDto.alternativeCountries
             );
             if (!puzzle) {
                 throw new HttpException('Puzzle not found', HttpStatus.NOT_FOUND);

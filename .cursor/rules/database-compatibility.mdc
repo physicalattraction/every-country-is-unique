@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Database Compatibility Rules
+
+Rules for ensuring database features work across different database engines.
+
+<rule>
+name: database_compatibility
+description: Ensures database features are compatible with both SQLite and PostgreSQL
+filters:
+  - type: file_extension
+    pattern: "\\.ts$"
+  - type: content
+    pattern: "@(Column|Entity|Index)\\("
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: suggest
+    message: |
+      When implementing database features:
+
+      1. Data Types:
+         - Use data types that are supported by both SQLite and PostgreSQL
+         - For JSON data:
+           - Use 'simple-json' instead of 'jsonb' in tests
+           - Document if using PostgreSQL-specific features in production
+         - For arrays:
+           - Use string-based alternatives in SQLite
+           - Document array limitations in SQLite
+
+      2. Constraints:
+         - Ensure constraints work in both databases
+         - Test with both SQLite (for tests) and PostgreSQL (for production)
+
+      3. Testing:
+         - Write tests that work with SQLite
+         - Document if any tests require PostgreSQL features
+         - Consider providing alternative test paths for SQLite
+
+      4. Best Practices:
+         - Always test with both SQLite and PostgreSQL before merging
+         - Document any database-specific features or limitations
+         - Provide fallback implementations for unsupported features
+
+examples:
+  - input: |
+      // Bad: Using PostgreSQL-specific type without SQLite support
+      @Column('jsonb')
+      data: object;
+
+      // Good: Using compatible type with fallback
+      @Column('simple-json')
+      data: object;
+
+      // Good: Documented PostgreSQL-specific feature
+      /**
+       * @production Uses PostgreSQL jsonb for better performance
+       * @test Uses simple-json for SQLite compatibility
+       */
+      @Column(process.env.NODE_ENV === 'test' ? 'simple-json' : 'jsonb')
+      data: object;
+    output: "Database-compatible column definition"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule>

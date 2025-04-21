@@ -24,30 +24,83 @@ export class PuzzleService {
         });
     }
 
-    async create(countryCode: string, clues: IClue[]): Promise<Puzzle> {
+    async create(countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
         if (!clues?.length) {
             throw new BadRequestException('A puzzle must have at least one clue');
         }
 
-        const country = await this.countryRepository.findOne({ where: { code: countryCode } });
+        if (!alternativeCountries?.length || alternativeCountries.length !== clues.length) {
+            throw new BadRequestException('Alternative countries array must have the same length as clues array');
+        }
+
+        if (alternativeCountries.some(innerArray => !innerArray?.length)) {
+            throw new BadRequestException('Each inner array in alternativeCountries must contain at least one element');
+        }
+
+        // Get all country codes in one query
+        const allCountries = await this.countryRepository.find();
+
+        // Find target country in the list
+        const country = allCountries.find(c => c.code === countryCode);
+
         if (!country) {
             throw new BadRequestException(`Country with code ${countryCode} not found`);
         }
 
-        const puzzle = await this.puzzleRepository.save({ country });
+        // Create a Set of valid country codes for O(1) lookups
+        const validCountryCodes = new Set(allCountries.map(c => c.code));
 
-        const clueEntities = clues.map(clue =>
-            this.clueRepository.create({
+        // Validate all country codes in alternativeCountries
+        const invalidCodes = new Set<string>();
+        for (const innerArray of alternativeCountries) {
+            for (const code of innerArray) {
+                if (!validCountryCodes.has(code)) {
+                    invalidCodes.add(code);
+                }
+            }
+        }
+
+        if (invalidCodes.size > 0) {
+            throw new BadRequestException(
+                `Invalid country codes found: ${Array.from(invalidCodes).join(', ')}`
+            );
+        }
+
+        // Use a single transaction for both puzzle and clue creation
+        const puzzle = await this.puzzleRepository.manager.transaction(async manager => {
+            // Save puzzle
+            const savedPuzzle = await manager.save(Puzzle, {
+                country,
+                alternativeCountries
+            });
+
+            // Create all clue entities at once
+            const clueEntities = clues.map(clue => ({
                 ...clue,
-                puzzle,
-            }),
-        );
-        await this.clueRepository.save(clueEntities);
+                puzzle: savedPuzzle,
+            }));
 
-        return this.findOne(puzzle.id);
+            // Bulk save all clues
+            await manager
+                .createQueryBuilder()
+                .insert()
+                .into(Clue)
+                .values(clueEntities)
+                .execute();
+
+            // Return the full puzzle with relations in a single query
+            return manager
+                .createQueryBuilder(Puzzle, 'puzzle')
+                .leftJoinAndSelect('puzzle.country', 'country')
+                .leftJoinAndSelect('puzzle.clues', 'clues')
+                .where('puzzle.id = :id', { id: savedPuzzle.id })
+                .getOne();
+        });
+
+        return puzzle;
     }
 
-    async update(id: number, countryCode: string, clues: IClue[]): Promise<Puzzle> {
+    async update(id: number, countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
         const puzzle = await this.findOne(id);
         if (!puzzle) {
             throw new NotFoundException(`Puzzle with id ${id} not found`);
@@ -57,13 +110,46 @@ export class PuzzleService {
             throw new BadRequestException('A puzzle must have at least one clue');
         }
 
-        const country = await this.countryRepository.findOne({ where: { code: countryCode } });
+        if (!alternativeCountries?.length || alternativeCountries.length !== clues.length) {
+            throw new BadRequestException('Alternative countries array must have the same length as clues array');
+        }
+
+        if (alternativeCountries.some(innerArray => !innerArray?.length)) {
+            throw new BadRequestException('Each inner array in alternativeCountries must contain at least one element');
+        }
+
+        // Get the target country and all country codes in one query
+        const [country, allCountries] = await Promise.all([
+            this.countryRepository.findOne({ where: { code: countryCode } }),
+            this.countryRepository.find({ select: ['code'] })
+        ]);
+
         if (!country) {
             throw new BadRequestException(`Country with code ${countryCode} not found`);
         }
 
-        // Update puzzle country
+        // Create a Set of valid country codes for O(1) lookups
+        const validCountryCodes = new Set(allCountries.map(c => c.code));
+
+        // Validate all country codes in alternativeCountries
+        const invalidCodes = new Set<string>();
+        for (const innerArray of alternativeCountries) {
+            for (const code of innerArray) {
+                if (!validCountryCodes.has(code)) {
+                    invalidCodes.add(code);
+                }
+            }
+        }
+
+        if (invalidCodes.size > 0) {
+            throw new BadRequestException(
+                `Invalid country codes found: ${Array.from(invalidCodes).join(', ')}`
+            );
+        }
+
+        // Update puzzle country and alternativeCountries
         puzzle.country = country;
+        puzzle.alternativeCountries = alternativeCountries;
         await this.puzzleRepository.save(puzzle);
 
         // Delete existing clues
@@ -87,9 +173,7 @@ export class PuzzleService {
             throw new NotFoundException(`Puzzle with id ${id} not found`);
         }
 
-        // Delete clues first due to foreign key constraint
-        await this.clueRepository.delete({ puzzle: { id } });
-        await this.puzzleRepository.delete(id);
+        await this.puzzleRepository.remove(puzzle);
     }
 
     async findMany(countryCode?: string, page = 1, limit = 20): Promise<{ puzzles: Puzzle[]; total: number }> {

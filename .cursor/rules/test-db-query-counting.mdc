@@ -1,0 +1,142 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Test Database Query Counting
+
+## Description
+When writing test cases that need to verify the number of database queries, use the `QueryCounter` utility class and document the expected queries in comments.
+
+## Why
+- Ensures consistent query counting across tests
+- Makes test expectations clear and maintainable
+- Helps identify performance issues and N+1 query problems
+- Documents the expected database behavior
+- Helps maintain optimal database performance
+
+## How
+1. Import and initialize the `QueryCounter` in your test file
+2. Use `startCounting()` before the operation to test
+3. Use `stopQueryCount()` after the operation
+4. Document expected queries in comments
+5. Assert the exact number of queries
+6. Use `verifyQueryCount()` for better error reporting
+
+## Examples
+
+```typescript
+// Bad: No query counting
+it('should return paginated puzzles', async () => {
+    const response = await request(app.getHttpServer()).get('/puzzles');
+    expect(response.body.puzzles).toHaveLength(3);
+});
+
+// Good: Query counting with documentation
+it('should return paginated puzzles', async () => {
+    // Arrange
+    const country = await createTestCountry(countryRepository);
+    const puzzles = await Promise.all([
+        puzzleRepository.save({ country }),
+        puzzleRepository.save({ country }),
+        puzzleRepository.save({ country }),
+    ]);
+
+    // Act
+    queryCounter.startCounting();
+    const response = await request(app.getHttpServer()).get('/puzzles').expect(200);
+
+    // Assert
+    expect(response.body.puzzles).toHaveLength(3);
+    expect(response.body.total).toBe(3);
+    
+    // The paginated endpoint makes 3 queries:
+    // 1. A query to get distinct puzzle IDs for pagination
+    // 2. A query to get the full puzzle data with relations
+    // 3. A query to get the total count for pagination metadata
+    expect(queryCounter.verifyQueryCount(3)).toBe(true);
+});
+
+// Good: Complex operation with detailed query documentation
+it('should make exactly 6 database queries when creating a puzzle', async () => {
+    // Arrange
+    await countryRepository.save({
+        code: 'QAT',
+        name: 'Qatar',
+        flag: '🇶🇦',
+    });
+
+    const clues = [
+        {
+            source: 'name',
+            key: 'has_nr_letters_lte',
+            value: '5',
+        },
+        {
+            source: 'population',
+            key: 'population_lt',
+            value: '3000000',
+        },
+    ];
+
+    const alternativeCountries = [
+        ['OMN', 'UAE'],
+        ['BHR', 'KWT'],
+    ];
+
+    // Act
+    queryCounter.startCounting();
+    await service.create('QAT', clues, alternativeCountries);
+
+    // Assert
+    // The create operation makes 6 queries:
+    // 1. SELECT "Country"."code" - Get all countries (including target country)
+    // 2. BEGIN TRANSACTION
+    // 3. INSERT INTO "puzzle" - Insert puzzle
+    // 4. INSERT INTO "clue" - Bulk insert clues
+    // 5. SELECT "puzzle"."id" - Get full puzzle data with relations in a single query
+    // 6. COMMIT
+    expect(queryCounter.verifyQueryCount(6)).toBe(true);
+});
+```
+
+## Implementation
+```typescript
+// In your test file
+import { QueryCounter } from '../../utils/query-counter';
+
+describe('YourTest', () => {
+    let queryCounter: QueryCounter;
+
+    beforeAll(() => {
+        queryCounter = new QueryCounter(dataSource);
+    });
+
+    it('should do something with expected queries', async () => {
+        // Document expected queries here
+        queryCounter.startCounting();
+        // ... test code ...
+        expect(queryCounter.verifyQueryCount(expectedCount)).toBe(true);
+    });
+});
+```
+
+## Best Practices
+1. Always document why each query is expected
+2. Use `verifyQueryCount()` instead of `stopQueryCount()` for better error reporting
+3. Group related queries in comments for better readability
+4. Include the SQL operation type (SELECT, INSERT, etc.) in comments
+5. Document transaction boundaries (BEGIN, COMMIT)
+6. Use query counting for performance-critical endpoints
+7. Update documentation when query patterns change
+
+## Notes
+- The `QueryCounter` utility class automatically logs executed queries when counts don't match
+- Query patterns may vary between different database types
+- Transaction boundaries should be counted as separate queries
+- Bulk operations should be counted as single queries when possible
+- Consider the impact of database indexes on query patterns
+
+metadata:
+  priority: high
+  version: 1.1

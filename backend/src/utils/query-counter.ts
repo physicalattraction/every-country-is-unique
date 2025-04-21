@@ -14,7 +14,7 @@ export class QueryCounter {
         },
     };
 
-    constructor(private dataSource: DataSource) {}
+    constructor(private dataSource: DataSource) { }
 
     /**
      * Start tracking queries
@@ -36,10 +36,17 @@ export class QueryCounter {
     }
 
     /**
-     * Get the executed queries
+     * Verify the number of executed queries matches the expected count
+     * If they don't match, logs the actual queries to the console
+     * @param expectedCount The expected number of queries
+     * @returns true if the count matches, false otherwise
      */
-    getExecutedQueries(): string[] {
-        return [...this.executedQueries];
+    verifyQueryCount(expectedCount: number): boolean {
+        const actualCount = this.executedQueries.length;
+        if (actualCount !== expectedCount) {
+            console.warn('Executed queries:', this.executedQueries);
+        }
+        return actualCount === expectedCount;
     }
 
     /**

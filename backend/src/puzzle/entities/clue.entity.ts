@@ -22,7 +22,7 @@ export class Clue {
     @Column()
     value: string;
 
-    @ManyToOne(() => Puzzle, puzzle => puzzle.clues)
+    @ManyToOne(() => Puzzle, puzzle => puzzle.clues, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'puzzle_id' })
     puzzle: Puzzle;
 }

@@ -25,6 +25,7 @@ export interface TestClue {
 export interface CreateTestPuzzleOptions {
     country?: TestCountry;
     clues?: TestClue[];
+    alternativeCountries?: string[][];
     skipClues?: boolean;
     skipCountry?: boolean;
 }
@@ -48,6 +49,11 @@ const DEFAULT_CLUES: TestClue[] = [
     },
 ];
 
+const DEFAULT_ALTERNATIVE_COUNTRIES: string[][] = [
+    ['OMN', 'UAE'],  // Countries that match all clues except the first one
+    ['BHR', 'KWT'],  // Countries that match all clues except the second one
+];
+
 export async function createTestCountry(
     countryRepository: Repository<Country>,
     country: TestCountry = DEFAULT_COUNTRY,
@@ -59,7 +65,13 @@ export async function createTestPuzzle(
     context: TestRepositoryContext,
     options: CreateTestPuzzleOptions = {},
 ): Promise<Puzzle> {
-    const { country = DEFAULT_COUNTRY, clues = DEFAULT_CLUES, skipClues = false, skipCountry = false } = options;
+    const {
+        country = DEFAULT_COUNTRY,
+        clues = DEFAULT_CLUES,
+        alternativeCountries = DEFAULT_ALTERNATIVE_COUNTRIES,
+        skipClues = false,
+        skipCountry = false
+    } = options;
 
     // Create or get country
     let savedCountry: Country;
@@ -73,7 +85,10 @@ export async function createTestPuzzle(
     }
 
     // Create puzzle
-    const puzzle = await context.puzzleRepository.save({ country: savedCountry });
+    const puzzle = await context.puzzleRepository.save({
+        country: savedCountry,
+        alternativeCountries
+    });
 
     // Create clues if needed
     if (!skipClues) {
