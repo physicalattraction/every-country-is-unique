@@ -20,6 +20,8 @@ export default function CountryByFlagQuiz() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [correctGuesses, setCorrectGuesses] = useState(0);
+  const [totalGuesses, setTotalGuesses] = useState(0);
 
   // Fetch countries once on initial load
   useEffect(() => {
@@ -62,6 +64,10 @@ export default function CountryByFlagQuiz() {
 
   const handleAnswer = (countryCode: string) => {
     setSelectedAnswer(countryCode);
+    setTotalGuesses(prev => prev + 1);
+    if (currentCountry && countryCode === currentCountry.code) {
+      setCorrectGuesses(prev => prev + 1);
+    }
   };
 
   const handleNextRound = () => {
@@ -124,6 +130,11 @@ export default function CountryByFlagQuiz() {
                   {country.name}
                 </button>
               ))}
+            </div>
+
+            {/* Score Counter */}
+            <div className="w-full flex flex-col items-center mt-4">
+              <span className="text-base font-semibold text-gray-700">Score: {correctGuesses} out of {totalGuesses}</span>
             </div>
 
             {/* Next Button */}
