@@ -18,4 +18,17 @@ export class CountryResponseDto {
 
     @ApiProperty({ description: 'The languages spoken in the country', type: [LanguageDto], required: false })
     languages?: LanguageDto[];
+
+    @ApiProperty({ description: 'The population of the country', required: false, type: Number })
+    population?: number;
+
+    @ApiProperty({ description: 'The area of the country in square kilometers', required: false, type: Number })
+    area?: number;
+
+    @ApiProperty({
+        description: 'The population density of the country (people per sq km)',
+        required: false,
+        type: Number,
+    })
+    populationDensity?: number;
 }

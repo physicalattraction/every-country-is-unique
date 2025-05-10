@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, Length } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, Length } from 'class-validator';
 
 export class CountryUpsertDto {
     @ApiProperty({ description: 'The three-letter country code' })
@@ -26,4 +26,23 @@ export class CountryUpsertDto {
     @IsArray()
     @IsString({ each: true })
     languageCodes?: string[];
-} 
+
+    @ApiProperty({ description: 'The population of the country', required: false, type: Number })
+    @IsOptional()
+    @IsNumber()
+    population?: number;
+
+    @ApiProperty({ description: 'The area of the country in square kilometers', required: false, type: Number })
+    @IsOptional()
+    @IsNumber()
+    area?: number;
+
+    @ApiProperty({
+        description: 'The population density of the country (people per sq km)',
+        required: false,
+        type: Number,
+    })
+    @IsOptional()
+    @IsNumber()
+    populationDensity?: number;
+}

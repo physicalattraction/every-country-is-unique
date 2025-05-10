@@ -41,4 +41,13 @@ export class Country {
         },
     })
     languages: Language[];
+
+    @Column({ type: 'float', nullable: true })
+    population?: number;
+
+    @Column({ type: 'float', nullable: true })
+    area?: number;
+
+    @Column({ type: 'float', nullable: true, name: 'population_density' })
+    populationDensity?: number;
 }

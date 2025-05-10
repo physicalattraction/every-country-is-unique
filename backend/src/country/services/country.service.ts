@@ -20,7 +20,9 @@ export class CountryService {
         private currencyRepository: Repository<Currency>,
         @InjectRepository(Language)
         private languageRepository: Repository<Language>,
-    ) { }
+    ) {
+        // Nothing to do here
+    }
 
     async findAll(query: CountryQueryDto): Promise<CountryResponseDto[]> {
         const { search } = query;
@@ -47,7 +49,7 @@ export class CountryService {
     }
 
     async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
-        const { code, name, flag, currencyCodes, languageCodes } = dto;
+        const { code, name, flag, currencyCodes, languageCodes, population, area, populationDensity } = dto;
 
         // Find or create the country
         let country = await this.countryRepository.findOne({
@@ -61,6 +63,11 @@ export class CountryService {
             country.name = name;
             country.flag = flag;
         }
+
+        // Set new optional fields if provided
+        if (population !== undefined) country.population = population;
+        if (area !== undefined) country.area = area;
+        if (populationDensity !== undefined) country.populationDensity = populationDensity;
 
         // Handle currencies if provided
         if (currencyCodes) {
@@ -90,9 +97,14 @@ export class CountryService {
             }
         } catch (error) {
             // Check for foreign key constraint violation
-            if (error.code === '23503' || // PostgreSQL foreign key violation code
-                error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') { // SQLite foreign key violation code
-                throw new BadRequestException(`Cannot delete country ${code} because it is still being used in puzzles`);
+            if (
+                error.code === '23503' || // PostgreSQL foreign key violation code
+                error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY'
+            ) {
+                // SQLite foreign key violation code
+                throw new BadRequestException(
+                    `Cannot delete country ${code} because it is still being used in puzzles`,
+                );
             }
 
             // Only log unexpected errors

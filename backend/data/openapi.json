@@ -441,6 +441,18 @@
             "items": {
               "$ref": "#/components/schemas/LanguageDto"
             }
+          },
+          "population": {
+            "type": "number",
+            "description": "The population of the country"
+          },
+          "area": {
+            "type": "number",
+            "description": "The area of the country in square kilometers"
+          },
+          "populationDensity": {
+            "type": "number",
+            "description": "The population density of the country (people per sq km)"
           }
         },
         "required": [
@@ -477,6 +489,18 @@
             "items": {
               "type": "string"
             }
+          },
+          "population": {
+            "type": "number",
+            "description": "The population of the country"
+          },
+          "area": {
+            "type": "number",
+            "description": "The area of the country in square kilometers"
+          },
+          "populationDensity": {
+            "type": "number",
+            "description": "The population density of the country (people per sq km)"
           }
         },
         "required": [
