@@ -1,0 +1,249 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Adding a New Country Property
+
+## Required Information
+Before implementing a new country property, gather the following information:
+
+1. **Property Details**:
+   - Name of the property
+   - Data type (string, number, boolean, etc.)
+   - Whether it's required or optional
+   - Default value (if any)
+   - Validation rules (if any)
+
+2. **Database Considerations**:
+   - Column type in the database
+   - Whether it should be nullable
+   - Any database constraints (unique, index, etc.)
+   - Default value in the database
+
+3. **API Considerations**:
+   - Description for API documentation
+   - Whether it should be included in search/filter operations
+   - Any special formatting requirements
+   - Any business logic or transformations needed
+
+4. **Migration Strategy**:
+   - How to handle existing data
+   - Whether a default value should be set for existing records
+   - Any data cleanup or transformation needed
+
+Example questions to ask:
+```typescript
+// Example property: capital city
+{
+    name: "capital",
+    type: "string",
+    required: false,
+    validation: "non-empty string",
+    description: "The capital city of the country",
+    databaseType: "varchar",
+    nullable: true,
+    searchable: true,
+    defaultValue: null,
+    migrationStrategy: "set to null for existing records"
+}
+```
+
+When adding a new property to the Country entity, follow these steps to ensure all necessary components are updated:
+
+## 1. Entity Definition
+Update `backend/src/country/entities/country.entity.ts`:
+```typescript
+@Entity()
+export class Country {
+    // ... existing code ...
+    
+    @Column({ type: 'your_type', nullable: true }) // Adjust type and options as needed
+    yourNewProperty?: YourType;
+}
+```
+
+## 2. DTOs
+Update the following DTOs in `backend/src/country/dto/`:
+
+### Response DTO (`country.response.dto.ts`)
+```typescript
+export class CountryResponseDto {
+    // ... existing code ...
+    
+    @ApiProperty({ 
+        description: 'Description of your new property',
+        required: false, // or true
+        type: YourType 
+    })
+    yourNewProperty?: YourType;
+}
+```
+
+### Upsert DTO (`country.upsert.dto.ts`)
+```typescript
+export class CountryUpsertDto {
+    // ... existing code ...
+    
+    @ApiProperty({ 
+        description: 'Description of your new property',
+        required: false, // or true
+        type: YourType 
+    })
+    @IsOptional() // or @IsRequired()
+    @IsYourType() // Add appropriate validation decorator
+    yourNewProperty?: YourType;
+}
+```
+
+### Bulk Update DTO (`country.bulk-update.dto.ts`)
+```typescript
+export class CountryBulkUpdateItemDto {
+    // ... existing properties ...
+    
+    @ApiProperty({ 
+        description: 'Description of your new property',
+        required: false,
+        type: YourType 
+    })
+    @IsOptional()
+    @IsYourType()
+    yourNewProperty?: YourType;
+}
+```
+
+## 3. Service Layer
+Update `backend/src/country/services/country.service.ts`:
+
+### In the upsert method:
+```typescript
+async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
+    const { 
+        // ... existing destructuring ...,
+        yourNewProperty 
+    } = dto;
+
+    // ... existing code ...
+
+    if (yourNewProperty !== undefined) {
+        country.yourNewProperty = yourNewProperty;
+    }
+}
+```
+
+### In the bulkUpdateCountries method:
+```typescript
+switch (key) {
+    // ... existing cases ...
+    case 'yourNewProperty':
+        if (typeof update.yourNewProperty !== 'yourExpectedType') {
+            throw new BadRequestException(
+                `Invalid type for 'yourNewProperty' in country code '${code}'. Expected yourExpectedType.`
+            );
+        }
+        country.yourNewProperty = update.yourNewProperty;
+        break;
+    default:
+        throw new BadRequestException(
+            `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, yourNewProperty, currencies, languages`
+        );
+}
+```
+
+## 4. Controller Layer
+Update `backend/src/country/controllers/country.controller.ts`:
+
+### Update Swagger documentation:
+```typescript
+@ApiOperation({
+    summary: 'Get country by code',
+    description: 'Retrieves detailed information about a specific country including your new property'
+})
+```
+
+## 5. Database Migration
+Create a new migration file in `backend/src/migrations/`:
+```typescript
+import { MigrationInterface, QueryRunner } from 'typeorm';
+
+export class AddYourNewProperty1234567890123 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(
+            `ALTER TABLE "country" ADD "your_new_property" your_type NULL`
+        );
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(
+            `ALTER TABLE "country" DROP COLUMN "your_new_property"`
+        );
+    }
+}
+```
+
+## 6. Tests
+Update test files in `backend/src/country/controllers/` and `backend/src/country/services/`:
+- Add test cases for the new property
+- Update existing test cases if they're affected
+- Add validation test cases if needed
+
+## Important Considerations
+1. **Type Safety**: Ensure proper typing throughout the codebase
+2. **Validation**: Add appropriate validation rules
+3. **Documentation**: Update all relevant API documentation
+4. **Backward Compatibility**: Consider impact on existing functionality
+5. **Data Migration**: Plan for existing data if needed
+6. **Testing**: Add comprehensive test coverage
+
+## Example
+For adding a `capital` property:
+```typescript
+// Entity
+@Column({ type: 'varchar', nullable: true })
+capital?: string;
+
+// Response DTO
+@ApiProperty({ 
+    description: 'The capital city of the country',
+    required: false,
+    type: String 
+})
+capital?: string;
+
+// Upsert DTO
+@ApiProperty({ 
+    description: 'The capital city of the country',
+    required: false,
+    type: String 
+})
+@IsOptional()
+@IsString()
+capital?: string;
+
+// Bulk Update DTO
+export class CountryBulkUpdateItemDto {
+    // ... existing properties ...
+    
+    @ApiProperty({ 
+        description: 'The capital city of the country',
+        required: false,
+        type: String 
+    })
+    @IsOptional()
+    @IsString()
+    capital?: string;
+}
+
+// Service
+if (capital !== undefined) country.capital = capital;
+
+// Bulk Update
+case 'capital':
+    if (typeof update.capital !== 'string') {
+        throw new BadRequestException(
+            `Invalid type for 'capital' in country code '${code}'. Expected string.`
+        );
+    }
+    country.capital = update.capital;
+    break;
+```
