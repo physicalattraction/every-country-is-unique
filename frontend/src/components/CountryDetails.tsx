@@ -41,6 +41,30 @@ export function CountryDetails({ country, isLoading, error }: CountryDetailsProp
         </div>
       </div>
 
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">Demographics</h3>
+        <ul className="space-y-1">
+          {(country.population !== undefined && country.population !== null) && (
+            <li className="flex items-center space-x-2">
+              <span className="font-medium">Population:</span>
+              <span>{country.population.toLocaleString()}</span>
+            </li>
+          )}
+          {(country.area !== undefined && country.area !== null) && (
+            <li className="flex items-center space-x-2">
+              <span className="font-medium">Area:</span>
+              <span>{country.area.toLocaleString()} km²</span>
+            </li>
+          )}
+          {(country.populationDensity !== undefined && country.populationDensity !== null) && (
+            <li className="flex items-center space-x-2">
+              <span className="font-medium">Population Density:</span>
+              <span>{country.populationDensity.toLocaleString()} people/km²</span>
+            </li>
+          )}
+        </ul>
+      </div>
+
       {country.currencies && country.currencies.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Currencies</h3>

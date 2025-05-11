@@ -15,6 +15,9 @@ export interface CountryResponseDto {
   flag: string;
   currencies?: CurrencyDto[];
   languages?: LanguageDto[];
+  population?: number;
+  area?: number;
+  populationDensity?: number;
 }
 
 export interface PuzzleResponseDto {
