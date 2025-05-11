@@ -25,6 +25,7 @@ describe('CountryController', () => {
     const TEST_API_KEY = 'test-api-key';
 
     beforeEach(async () => {
+        // noinspection ES6MissingAwait
         const module: TestingModule = await Test.createTestingModule({
             imports: [
                 TypeOrmModule.forRoot({
@@ -358,7 +359,13 @@ describe('CountryController', () => {
                 .put('/countries/bulk')
                 .set('X-API-Key', TEST_API_KEY)
                 .send(updates)
-                .expect(200);
+                .expect(res => {
+                    if (res.status !== 200) {
+                        throw new Error(
+                            `Expected status 200 but got ${res.status}. Response: ${JSON.stringify(res.body)}`,
+                        );
+                    }
+                });
 
             // Assert
             expect(response.body).toHaveLength(2);

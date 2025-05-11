@@ -134,6 +134,38 @@
         ]
       }
     },
+    "/countries/bulk": {
+      "put": {
+        "description": "Updates multiple countries at once using a dictionary of country codes to partial update objects",
+        "operationId": "CountryController_bulkUpdate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Countries updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CountryResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid update data provided"
+          },
+          "401": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "summary": "Bulk update countries",
+        "tags": [
+          "countries"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "description": "Returns the health status of the API",

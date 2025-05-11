@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { CountryBulkUpdateDto } from '../dto/country.bulk-update.dto';
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CountryUpsertDto } from '../dto/country.upsert.dto';
@@ -117,9 +118,8 @@ export class CountryService {
         }
     }
 
-    async bulkUpdateCountries(updates: Record<string, Partial<Country>>): Promise<CountryResponseDto[]> {
-        const codes = Object.keys(updates);
-
+    async bulkUpdateCountries(updates: CountryBulkUpdateDto): Promise<CountryResponseDto[]> {
+        const countryCodes = Object.keys(updates);
         const countryMap = await this.getCountryMapFromUpdates(updates);
         const currencyMap = await this.getCurrencyMapFromUpdates(updates);
         const languageMap = await this.getLanguageMapFromUpdates(updates);
@@ -128,7 +128,7 @@ export class CountryService {
         const updatedCountries: Country[] = [];
 
         await this.countryRepository.manager.transaction(async transactionalEntityManager => {
-            for (const code of codes) {
+            for (const code of countryCodes) {
                 const update = updates[code];
                 const country = countryMap.get(code);
 
@@ -185,8 +185,7 @@ export class CountryService {
                                     `Invalid type for 'currencies' in country code '${code}'. Expected a non-empty array of strings.`,
                                 );
                             }
-                            const currencyCodes = update.currencies as string[];
-                            country.currencies = currencyCodes.map(c => currencyMap.get(c)!);
+                            country.currencies = update.currencies.map(c => currencyMap.get(c)!);
                             break;
                         case 'languages':
                             if (
@@ -198,8 +197,7 @@ export class CountryService {
                                     `Invalid type for 'languages' in country code '${code}'. Expected a non-empty array of strings.`,
                                 );
                             }
-                            const languageCodes = update.languages as string[];
-                            country.languages = languageCodes.map(l => languageMap.get(l)!);
+                            country.languages = update.languages.map(l => languageMap.get(l)!);
                             break;
                         default:
                             // Throw if the field is not allowed
@@ -217,7 +215,7 @@ export class CountryService {
 
         // Re-fetch the updated countries with relations to ensure the response is correct
         const result = await this.countryRepository.find({
-            where: { code: In(codes) },
+            where: { code: In(countryCodes) },
             relations: ['currencies', 'languages'],
         });
         return result;
@@ -230,7 +228,7 @@ export class CountryService {
      * @returns A map of country codes to their corresponding Country entities
      * @throws BadRequestException if any country code is invalid
      */
-    private async getCountryMapFromUpdates(updates: Record<string, Partial<Country>>): Promise<Map<string, Country>> {
+    private async getCountryMapFromUpdates(updates: CountryBulkUpdateDto): Promise<Map<string, Country>> {
         const codes = Object.keys(updates);
 
         // Fetch all countries in one query
@@ -261,7 +259,7 @@ export class CountryService {
      * @returns A map of currency codes to their corresponding Currency entities
      * @throws BadRequestException if any currency code is invalid
      */
-    private async getCurrencyMapFromUpdates(updates: Record<string, Partial<Country>>): Promise<Map<string, Currency>> {
+    private async getCurrencyMapFromUpdates(updates: CountryBulkUpdateDto): Promise<Map<string, Currency>> {
         // Get all the codes from the updates
         const codes = Object.keys(updates);
         const allCurrencyCodes: string[] = Array.from(
@@ -297,7 +295,7 @@ export class CountryService {
      * @returns A map of language codes to their corresponding Language entities
      * @throws BadRequestException if any language code is invalid
      */
-    private async getLanguageMapFromUpdates(updates: Record<string, Partial<Country>>): Promise<Map<string, Language>> {
+    private async getLanguageMapFromUpdates(updates: CountryBulkUpdateDto): Promise<Map<string, Language>> {
         const codes = Object.keys(updates);
         const allLanguageCodes: string[] = Array.from(
             new Set(
