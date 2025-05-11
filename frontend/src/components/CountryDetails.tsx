@@ -4,9 +4,10 @@ interface CountryDetailsProps {
   country: CountryResponseDto | null;
   isLoading: boolean;
   error: string | null;
+  allCountries: CountryResponseDto[];
 }
 
-export function CountryDetails({ country, isLoading, error }: CountryDetailsProps) {
+export function CountryDetails({ country, isLoading, error, allCountries }: CountryDetailsProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -30,6 +31,13 @@ export function CountryDetails({ country, isLoading, error }: CountryDetailsProp
       </div>
     );
   }
+
+  const getCountryNames = (countryCodes: string[]) => {
+    const names = countryCodes
+      .map(code => allCountries.find(c => c.code === code)?.name)
+      .filter((name): name is string => name !== undefined);
+    return names.sort((a, b) => a.localeCompare(b));
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -100,6 +108,28 @@ export function CountryDetails({ country, isLoading, error }: CountryDetailsProp
           </ul>
         </div>
       )}
+
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">Borders</h3>
+        <ul className="space-y-1">
+          <li className="flex items-center space-x-2">
+            <span className="font-medium">Landlocked:</span>
+            <span>{country.isLandlocked ? 'Yes' : 'No'}</span>
+          </li>
+          <li className="flex flex-col space-y-1">
+            <span className="font-medium">Bordering Countries:</span>
+            {country.borders && country.borders.length > 0 ? (
+              <ul className="list-disc list-inside pl-2">
+                {getCountryNames(country.borders).map((name) => (
+                  <li key={name} className="text-gray-600">{name}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-gray-600">-</span>
+            )}
+          </li>
+        </ul>
+      </div>
     </div>
   );
 } 

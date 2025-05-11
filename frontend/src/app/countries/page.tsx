@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 
 export default function CountriesPage() {
   const [countries, setCountries] = useState<CountryResponseDto[]>([]);
+  const [unfilteredCountries, setUnfilteredCountries] = useState<CountryResponseDto[]>([]);
   const [totalCountries, setTotalCountries] = useState<number>(0);
   const [selectedCountry, setSelectedCountry] = useState<CountryResponseDto | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,32 +18,14 @@ export default function CountriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
-  // Fetch total count once on initial load
-  useEffect(() => {
-    const fetchTotalCount = async () => {
-      try {
-        const data = await countryService.getAllCountries();
-        setTotalCountries(data.length);
-      } catch (err) {
-        console.error('Error fetching total count:', err);
-      }
-    };
-
-    fetchTotalCount();
-  }, []);
-
-  // Fetch filtered countries when search term changes
+  // Fetch countries once on initial load
   useEffect(() => {
     const fetchCountries = async () => {
       try {
         const data = await countryService.getAllCountries();
-        const filtered = searchTerm
-          ? data.filter(country =>
-            country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            country.code.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-          : data;
-        setCountries(filtered);
+        setUnfilteredCountries(data);
+        setCountries(data);
+        setTotalCountries(data.length);
       } catch (err) {
         console.error('Error fetching countries:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch countries');
@@ -52,7 +35,21 @@ export default function CountriesPage() {
     };
 
     fetchCountries();
-  }, [searchTerm]);
+  }, []);
+
+  // Filter countries when search term changes
+  useEffect(() => {
+    if (!searchTerm) {
+      setCountries(unfilteredCountries);
+      return;
+    }
+
+    const filtered = unfilteredCountries.filter(country =>
+      country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      country.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setCountries(filtered);
+  }, [searchTerm, unfilteredCountries]);
 
   const handleCountrySelect = async (code: string) => {
     setIsLoadingDetails(true);
@@ -120,6 +117,7 @@ export default function CountriesPage() {
                   country={selectedCountry}
                   isLoading={isLoadingDetails}
                   error={detailsError}
+                  allCountries={unfilteredCountries}
                 />
               </div>
             </div>

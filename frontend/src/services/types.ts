@@ -18,6 +18,8 @@ export interface CountryResponseDto {
   population?: number;
   area?: number;
   populationDensity?: number;
+  isLandlocked?: boolean;
+  borders?: string[];
 }
 
 export interface PuzzleResponseDto {
