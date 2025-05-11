@@ -31,4 +31,11 @@ export class CountryResponseDto {
         type: Number,
     })
     populationDensity?: number;
+
+    @ApiProperty({
+        description: 'Whether the country is landlocked (has no coastline)',
+        required: false,
+        type: Boolean,
+    })
+    isLandlocked?: boolean;
 }

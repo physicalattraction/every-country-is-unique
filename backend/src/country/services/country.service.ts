@@ -26,12 +26,16 @@ export class CountryService {
     }
 
     async findAll(query: CountryQueryDto): Promise<CountryResponseDto[]> {
-        const { search } = query;
+        const { search, isLandlocked } = query;
 
         const queryBuilder = this.countryRepository.createQueryBuilder('country');
 
         if (search) {
             queryBuilder.where('LOWER(country.name) LIKE LOWER(:search)', { search: `%${search}%` });
+        }
+
+        if (isLandlocked !== undefined) {
+            queryBuilder.andWhere('country.is_landlocked = :isLandlocked', { isLandlocked });
         }
 
         return queryBuilder.orderBy('country.name', 'ASC').getMany();
@@ -50,7 +54,8 @@ export class CountryService {
     }
 
     async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
-        const { code, name, flag, currencyCodes, languageCodes, population, area, populationDensity } = dto;
+        const { code, name, flag, currencyCodes, languageCodes, population, area, populationDensity, isLandlocked } =
+            dto;
 
         // Find or create the country
         let country = await this.countryRepository.findOne({
@@ -69,6 +74,7 @@ export class CountryService {
         if (population !== undefined) country.population = population;
         if (area !== undefined) country.area = area;
         if (populationDensity !== undefined) country.populationDensity = populationDensity;
+        if (isLandlocked !== undefined) country.isLandlocked = isLandlocked;
 
         // Handle currencies if provided
         if (currencyCodes) {
@@ -175,6 +181,14 @@ export class CountryService {
                             }
                             country.populationDensity = update.populationDensity;
                             break;
+                        case 'isLandlocked':
+                            if (typeof update.isLandlocked !== 'boolean') {
+                                throw new BadRequestException(
+                                    `Invalid type for 'isLandlocked' in country code '${code}'. Expected boolean.`,
+                                );
+                            }
+                            country.isLandlocked = update.isLandlocked;
+                            break;
                         case 'currencies':
                             if (
                                 !Array.isArray(update.currencies) ||
@@ -202,7 +216,7 @@ export class CountryService {
                         default:
                             // Throw if the field is not allowed
                             throw new BadRequestException(
-                                `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, currencies, languages`,
+                                `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, isLandlocked, currencies, languages`,
                             );
                     }
                 }

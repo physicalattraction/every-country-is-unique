@@ -6,7 +6,7 @@ alwaysApply: true
 # Adding a New Country Property
 
 ## Required Information
-Before implementing a new country property, gather the following information:
+Before implementing a new country property, you MUST ask the user for the following information if not already provided:
 
 1. **Property Details**:
    - Name of the property
@@ -49,9 +49,19 @@ Example questions to ask:
 }
 ```
 
-When adding a new property to the Country entity, follow these steps to ensure all necessary components are updated:
+## Implementation Steps
+ONLY proceed with these steps AFTER gathering all required information:
 
-## 1. Entity Definition
+1. Ask the user to confirm the property details before proceeding
+2. Show the user the planned changes for each file
+3. Get user approval before making any changes
+4. Make the changes one file at a time
+5. Show the user the changes after each file is updated
+
+## Required Changes
+After getting user approval, update the following files:
+
+### 1. Entity Definition
 Update `backend/src/country/entities/country.entity.ts`:
 ```typescript
 @Entity()
@@ -63,10 +73,10 @@ export class Country {
 }
 ```
 
-## 2. DTOs
+### 2. DTOs
 Update the following DTOs in `backend/src/country/dto/`:
 
-### Response DTO (`country.response.dto.ts`)
+#### Response DTO (`country.response.dto.ts`)
 ```typescript
 export class CountryResponseDto {
     // ... existing code ...
@@ -80,7 +90,7 @@ export class CountryResponseDto {
 }
 ```
 
-### Upsert DTO (`country.upsert.dto.ts`)
+#### Upsert DTO (`country.upsert.dto.ts`)
 ```typescript
 export class CountryUpsertDto {
     // ... existing code ...
@@ -96,7 +106,7 @@ export class CountryUpsertDto {
 }
 ```
 
-### Bulk Update DTO (`country.bulk-update.dto.ts`)
+#### Bulk Update DTO (`country.bulk-update.dto.ts`)
 ```typescript
 export class CountryBulkUpdateItemDto {
     // ... existing properties ...
@@ -112,10 +122,10 @@ export class CountryBulkUpdateItemDto {
 }
 ```
 
-## 3. Service Layer
+### 3. Service Layer
 Update `backend/src/country/services/country.service.ts`:
 
-### In the upsert method:
+#### In the upsert method:
 ```typescript
 async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
     const { 
@@ -131,7 +141,7 @@ async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
 }
 ```
 
-### In the bulkUpdateCountries method:
+#### In the bulkUpdateCountries method:
 ```typescript
 switch (key) {
     // ... existing cases ...
@@ -150,10 +160,10 @@ switch (key) {
 }
 ```
 
-## 4. Controller Layer
+### 4. Controller Layer
 Update `backend/src/country/controllers/country.controller.ts`:
 
-### Update Swagger documentation:
+#### Update Swagger documentation:
 ```typescript
 @ApiOperation({
     summary: 'Get country by code',
@@ -161,7 +171,7 @@ Update `backend/src/country/controllers/country.controller.ts`:
 })
 ```
 
-## 5. Database Migration
+### 5. Database Migration
 Create a new migration file in `backend/src/migrations/`:
 ```typescript
 import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -181,7 +191,7 @@ export class AddYourNewProperty1234567890123 implements MigrationInterface {
 }
 ```
 
-## 6. Tests
+### 6. Tests
 Update test files in `backend/src/country/controllers/` and `backend/src/country/services/`:
 - Add test cases for the new property
 - Update existing test cases if they're affected

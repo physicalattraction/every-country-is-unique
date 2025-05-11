@@ -50,4 +50,7 @@ export class Country {
 
     @Column({ type: 'float', nullable: true, name: 'population_density' })
     populationDensity?: number;
+
+    @Column({ type: 'boolean', nullable: true, name: 'is_landlocked' })
+    isLandlocked?: boolean;
 }

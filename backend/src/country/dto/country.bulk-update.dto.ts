@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CountryBulkUpdateItemDto {
     @ApiProperty({
@@ -68,6 +68,15 @@ export class CountryBulkUpdateItemDto {
     @IsString({ each: true })
     @IsOptional()
     languages?: string[];
+
+    @ApiProperty({
+        description: 'Whether the country is landlocked (has no coastline)',
+        example: true,
+        required: false,
+    })
+    @IsBoolean()
+    @IsOptional()
+    isLandlocked?: boolean;
 }
 
 export type CountryBulkUpdateDto = Record<string, CountryBulkUpdateItemDto>;

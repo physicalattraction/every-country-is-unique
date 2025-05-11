@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString, Length } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Length } from 'class-validator';
 
 export class CountryUpsertDto {
     @ApiProperty({ description: 'The three-letter country code' })
@@ -45,4 +45,13 @@ export class CountryUpsertDto {
     @IsOptional()
     @IsNumber()
     populationDensity?: number;
+
+    @ApiProperty({
+        description: 'Whether the country is landlocked (has no coastline)',
+        required: false,
+        type: Boolean,
+    })
+    @IsOptional()
+    @IsBoolean()
+    isLandlocked?: boolean;
 }
