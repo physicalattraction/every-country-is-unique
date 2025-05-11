@@ -5,12 +5,15 @@ import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CountryUpsertDto } from '../dto/country.upsert.dto';
+import { Country } from '../entities/country.entity';
 import { CountryService } from '../services/country.service';
 
 @ApiTags('countries')
 @Controller('countries')
 export class CountryController {
-    constructor(private readonly countryService: CountryService) { }
+    constructor(private readonly countryService: CountryService) {
+        // No-op
+    }
 
     @Get()
     @ApiOperation({
@@ -82,5 +85,21 @@ export class CountryController {
     })
     async delete(@Param('code') code: string): Promise<void> {
         return this.countryService.delete(code);
+    }
+
+    @Put('bulk')
+    @UseGuards(ApiKeyGuard)
+    @ApiOperation({
+        summary: 'Bulk update countries',
+        description:
+            'Bulk update country information. Accepts a dictionary where keys are country codes and values are partial country property objects. Only provided fields are updated.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Countries updated successfully',
+        type: [CountryResponseDto],
+    })
+    async bulkUpdate(@Body() updates: Record<string, Partial<Country>>): Promise<CountryResponseDto[]> {
+        return this.countryService.bulkUpdateCountries(updates);
     }
 }

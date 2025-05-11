@@ -6,6 +6,9 @@ import * as request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
 
 import { CountryModule } from '../country.module';
+import { CountryResponseDto } from '../dto/country.response.dto';
+import { CurrencyDto } from '../dto/currency.dto';
+import { LanguageDto } from '../dto/language.dto';
 import { Country } from '../entities/country.entity';
 import { Currency } from '../entities/currency.entity';
 import { Language } from '../entities/language.entity';
@@ -43,6 +46,7 @@ describe('CountryController', () => {
                 CountryService,
                 {
                     provide: ConfigService,
+                    // Mock ConfigService to return TEST_API_KEY for API_KEY requests and undefined for others
                     useValue: {
                         get: jest.fn((key: string) => {
                             if (key === 'API_KEY') {
@@ -195,8 +199,8 @@ describe('CountryController', () => {
 
         it('should handle currencies and languages', async () => {
             // Arrange
-            const currency = await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
-            const language = await languageRepository.save({ code: 'eng', name: 'English' });
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
             const countryDto = {
                 code: 'USA',
                 name: 'United States',
@@ -227,10 +231,7 @@ describe('CountryController', () => {
                 flag: '🇺🇸',
             };
 
-            return request(app.getHttpServer())
-                .put('/countries')
-                .send(countryDto)
-                .expect(401);
+            return request(app.getHttpServer()).put('/countries').send(countryDto).expect(401);
         });
 
         it('should reject invalid API key', () => {
@@ -254,10 +255,7 @@ describe('CountryController', () => {
             await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
 
             // Act
-            await request(app.getHttpServer())
-                .delete('/countries/USA')
-                .set('X-API-Key', TEST_API_KEY)
-                .expect(200);
+            await request(app.getHttpServer()).delete('/countries/USA').set('X-API-Key', TEST_API_KEY).expect(200);
 
             // Assert
             const deletedCountry = await countryRepository.findOne({ where: { code: 'USA' } });
@@ -266,44 +264,267 @@ describe('CountryController', () => {
 
         it('should return 404 for non-existent country', async () => {
             // Act & Assert
-            await request(app.getHttpServer())
-                .delete('/countries/XXX')
-                .set('X-API-Key', TEST_API_KEY)
-                .expect(404);
+            await request(app.getHttpServer()).delete('/countries/XXX').set('X-API-Key', TEST_API_KEY).expect(404);
         });
 
         it('should return 400 when country is in use by puzzles', async () => {
             // Arrange
-            const country = await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+
             // Create a puzzle that references this country
             await dataSource.query(`
-                CREATE TABLE IF NOT EXISTS puzzle (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    country_code VARCHAR(3) NOT NULL,
-                    FOREIGN KEY (country_code) REFERENCES country(code)
+                CREATE TABLE IF NOT EXISTS puzzle
+                (
+                    id
+                    INTEGER
+                    PRIMARY
+                    KEY
+                    AUTOINCREMENT,
+                    country_code
+                    VARCHAR
+                (
+                    3
+                ) NOT NULL,
+                    FOREIGN KEY
+                (
+                    country_code
+                ) REFERENCES country
+                (
+                    code
                 )
+                    )
             `);
-            await dataSource.query(`INSERT INTO puzzle (country_code) VALUES ('USA')`);
+            await dataSource.query(`INSERT INTO puzzle (country_code)
+                                    VALUES ('USA')`);
 
             // Act & Assert
             const response = await request(app.getHttpServer())
                 .delete('/countries/USA')
                 .set('X-API-Key', TEST_API_KEY)
                 .expect(400);
-            expect(response.body.message).toContain('Cannot delete country USA because it is still being used in puzzles');
+            expect(response.body.message).toContain(
+                'Cannot delete country USA because it is still being used in puzzles',
+            );
         });
 
         it('should require API key', () => {
-            return request(app.getHttpServer())
-                .delete('/countries/USA')
-                .expect(401);
+            return request(app.getHttpServer()).delete('/countries/USA').expect(401);
         });
 
         it('should reject invalid API key', () => {
-            return request(app.getHttpServer())
-                .delete('/countries/USA')
-                .set('X-API-Key', 'wrong-key')
-                .expect(401);
+            return request(app.getHttpServer()).delete('/countries/USA').set('X-API-Key', 'wrong-key').expect(401);
         });
     });
-}); 
+
+    describe('PUT /countries/bulk', () => {
+        it('should bulk update multiple countries (good-weather)', async () => {
+            // Arrange
+            // Create currencies and languages
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await currencyRepository.save({ code: 'CAD', name: 'Canadian Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await languageRepository.save({ code: 'fra', name: 'French' });
+
+            // Create countries
+            await countryRepository.save([
+                { code: 'USA', name: 'United States', flag: '🇺🇸', population: 1000 },
+                { code: 'CAN', name: 'Canada', flag: '🇨🇦', population: 1000 },
+            ]);
+
+            // Prepare bulk update payload
+            const updates = {
+                USA: {
+                    name: 'United States of America',
+                    flag: '🇺🇸',
+                    population: 333000000,
+                    area: 9834000,
+                    populationDensity: 33.9,
+                    currencies: ['USD'],
+                    languages: ['eng'],
+                },
+                CAN: {
+                    name: 'Canada',
+                    flag: '🇨🇦',
+                    population: 38000000,
+                    area: 9985000,
+                    populationDensity: 3.8,
+                    currencies: ['CAD'],
+                    languages: ['eng', 'fra'],
+                },
+            };
+
+            // Act
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(200);
+
+            // Assert
+            expect(response.body).toHaveLength(2);
+            const usa = response.body.find((c: CountryResponseDto) => c.code === 'USA');
+            const can = response.body.find((c: CountryResponseDto) => c.code === 'CAN');
+            expect(usa).toMatchObject({
+                code: 'USA',
+                name: 'United States of America',
+                flag: '🇺🇸',
+                population: 333000000,
+                area: 9834000,
+                populationDensity: 33.9,
+            });
+            expect(usa.currencies).toHaveLength(1);
+            expect(usa.currencies[0].code).toBe('USD');
+            expect(usa.languages).toHaveLength(1);
+            expect(usa.languages[0].code).toBe('eng');
+            expect(can).toMatchObject({
+                code: 'CAN',
+                name: 'Canada',
+                flag: '🇨🇦',
+                population: 38000000,
+                area: 9985000,
+                populationDensity: 3.8,
+            });
+            expect(can.currencies).toHaveLength(1);
+            expect(can.currencies[0].code).toBe('CAD');
+            expect(can.languages).toHaveLength(2);
+            expect(can.languages.map((l: LanguageDto) => l.code).sort()).toEqual(['eng', 'fra']);
+
+            // Verify database state
+            const updatedUSA = await countryRepository.findOne({
+                where: { code: 'USA' },
+                relations: ['currencies', 'languages'],
+            });
+            expect(updatedUSA.name).toBe('United States of America');
+            expect(updatedUSA.population).toBe(333000000);
+            expect(updatedUSA.currencies.map((c: CurrencyDto) => c.code)).toEqual(['USD']);
+            expect(updatedUSA.languages.map((l: LanguageDto) => l.code)).toEqual(['eng']);
+            const updatedCAN = await countryRepository.findOne({
+                where: { code: 'CAN' },
+                relations: ['currencies', 'languages'],
+            });
+            expect(updatedCAN.population).toBe(38000000);
+            expect(updatedCAN.currencies.map((c: CurrencyDto) => c.code)).toEqual(['CAD']);
+            expect(updatedCAN.languages.map((l: LanguageDto) => l.code).sort()).toEqual(['eng', 'fra']);
+        });
+
+        it('should return 401 if API key is missing', async () => {
+            const updates = { USA: { name: 'Test' } };
+            await request(app.getHttpServer()).put('/countries/bulk').send(updates).expect(401);
+        });
+
+        it('should return 401 if API key is invalid', async () => {
+            const updates = { USA: { name: 'Test' } };
+            await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', 'wrong-key')
+                .send(updates)
+                .expect(401);
+        });
+
+        it('should return 400 for invalid country code', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { name: 'Valid' },
+                XXX: { name: 'Invalid' },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Invalid country code(s): XXX');
+        });
+
+        it('should return 400 for invalid currency code', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { currencies: ['USD', 'FAKE'] },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Invalid currency code(s): FAKE');
+        });
+
+        it('should return 400 for invalid language code', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { languages: ['eng', 'zzz'] },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Invalid language code(s): zzz');
+        });
+
+        it('should return 400 for empty currencies array', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { currencies: [] },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Expected a non-empty array of strings');
+        });
+
+        it('should return 400 for empty languages array', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { languages: [] },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Expected a non-empty array of strings');
+        });
+
+        it('should return 400 for invalid field in update object', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { notAField: 123 },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Invalid field');
+        });
+
+        it('should return 400 for invalid type for population', async () => {
+            await currencyRepository.save({ code: 'USD', name: 'US Dollar', symbol: '$' });
+            await languageRepository.save({ code: 'eng', name: 'English' });
+            await countryRepository.save({ code: 'USA', name: 'United States', flag: '🇺🇸' });
+            const updates = {
+                USA: { population: 'not-a-number' },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(400);
+            expect(response.body.message).toContain('Invalid type for');
+        });
+    });
+});
