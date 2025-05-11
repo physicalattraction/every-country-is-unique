@@ -53,4 +53,7 @@ export class Country {
 
     @Column({ type: 'boolean', nullable: true, name: 'is_landlocked' })
     isLandlocked?: boolean;
+
+    // This is a calculated property that will be populated by the service
+    borders?: string[];
 }

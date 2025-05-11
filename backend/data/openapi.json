@@ -33,7 +33,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CountryResponseDto"
+                    "$ref": "#/components/schemas/CountryQuickResponseDto"
                   }
                 }
               }
@@ -416,6 +416,28 @@
   "servers": [],
   "components": {
     "schemas": {
+      "CountryQuickResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The three-letter country code"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the country"
+          },
+          "flag": {
+            "type": "string",
+            "description": "The flag emoji of the country"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "flag"
+        ]
+      },
       "CurrencyDto": {
         "type": "object",
         "properties": {
@@ -498,12 +520,24 @@
           "isLandlocked": {
             "type": "boolean",
             "description": "Whether the country is landlocked (has no coastline)"
+          },
+          "borders": {
+            "description": "An array of country codes representing the countries that share a land border with this country. The relationship is symmetric (if country A borders country B, then country B borders country A).",
+            "example": [
+              "MEX",
+              "CAN"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
           "code",
           "name",
-          "flag"
+          "flag",
+          "borders"
         ]
       },
       "CountryUpsertDto": {
@@ -550,6 +584,17 @@
           "isLandlocked": {
             "type": "boolean",
             "description": "Whether the country is landlocked (has no coastline)"
+          },
+          "borders": {
+            "description": "An array of country codes representing the countries that share a land border with this country. The relationship is symmetric (if country A borders country B, then country B borders country A).",
+            "example": [
+              "MEX",
+              "CAN"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [

@@ -4,6 +4,7 @@ import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/
 import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
 import { CountryBulkUpdateDto } from '../dto/country.bulk-update.dto';
 import { CountryQueryDto } from '../dto/country.query.dto';
+import { CountryQuickResponseDto } from '../dto/country.quick-response.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CountryUpsertDto } from '../dto/country.upsert.dto';
 import { CountryService } from '../services/country.service';
@@ -24,9 +25,9 @@ export class CountryController {
     @ApiResponse({
         status: 200,
         description: 'List of countries retrieved successfully',
-        type: [CountryResponseDto],
+        type: [CountryQuickResponseDto],
     })
-    async findAll(@Query() query: CountryQueryDto): Promise<CountryResponseDto[]> {
+    async findAll(@Query() query: CountryQueryDto): Promise<CountryQuickResponseDto[]> {
         return this.countryService.findAll(query);
     }
 

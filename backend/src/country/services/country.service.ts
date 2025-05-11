@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 
 import { CountryBulkUpdateDto } from '../dto/country.bulk-update.dto';
 import { CountryQueryDto } from '../dto/country.query.dto';
+import { CountryQuickResponseDto } from '../dto/country.quick-response.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CountryUpsertDto } from '../dto/country.upsert.dto';
+import { Border } from '../entities/border.entity';
 import { Country } from '../entities/country.entity';
 import { Currency } from '../entities/currency.entity';
 import { Language } from '../entities/language.entity';
@@ -21,12 +23,14 @@ export class CountryService {
         private currencyRepository: Repository<Currency>,
         @InjectRepository(Language)
         private languageRepository: Repository<Language>,
+        @InjectRepository(Border)
+        private borderRepository: Repository<Border>,
     ) {
         // Nothing to do here
     }
 
-    async findAll(query: CountryQueryDto): Promise<CountryResponseDto[]> {
-        const { search, isLandlocked } = query;
+    async findAll(query: CountryQueryDto): Promise<CountryQuickResponseDto[]> {
+        const { search } = query;
 
         const queryBuilder = this.countryRepository.createQueryBuilder('country');
 
@@ -34,11 +38,13 @@ export class CountryService {
             queryBuilder.where('LOWER(country.name) LIKE LOWER(:search)', { search: `%${search}%` });
         }
 
-        if (isLandlocked !== undefined) {
-            queryBuilder.andWhere('country.is_landlocked = :isLandlocked', { isLandlocked });
-        }
+        const countries = await queryBuilder.orderBy('country.name', 'ASC').getMany();
 
-        return queryBuilder.orderBy('country.name', 'ASC').getMany();
+        return countries.map(country => ({
+            code: country.code,
+            name: country.name,
+            flag: country.flag,
+        }));
     }
 
     async findOne(code: string): Promise<CountryResponseDto> {
@@ -50,12 +56,36 @@ export class CountryService {
         if (!country) {
             throw new NotFoundException(`Country with code ${code} not found`);
         }
-        return country;
+
+        // Fetch all borders for this country
+        const borders = await this.borderRepository.find({
+            where: [{ country1_code: code }, { country2_code: code }],
+        });
+
+        // Get all border codes
+        const borderCodes = borders.map(border =>
+            border.country1_code === code ? border.country2_code : border.country1_code,
+        );
+
+        return {
+            ...country,
+            borders: borderCodes,
+        };
     }
 
     async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
-        const { code, name, flag, currencyCodes, languageCodes, population, area, populationDensity, isLandlocked } =
-            dto;
+        const {
+            code,
+            name,
+            flag,
+            currencyCodes,
+            languageCodes,
+            population,
+            area,
+            populationDensity,
+            isLandlocked,
+            borders,
+        } = dto;
 
         // Find or create the country
         let country = await this.countryRepository.findOne({
@@ -78,22 +108,37 @@ export class CountryService {
 
         // Handle currencies if provided
         if (currencyCodes) {
-            const currencies = await this.currencyRepository.findBy({
+            country.currencies = await this.currencyRepository.findBy({
                 code: In(currencyCodes),
             });
-            country.currencies = currencies;
         }
 
         // Handle languages if provided
         if (languageCodes) {
-            const languages = await this.languageRepository.findBy({
+            country.languages = await this.languageRepository.findBy({
                 code: In(languageCodes),
             });
-            country.languages = languages;
         }
 
-        // Save the country with its relationships
-        return this.countryRepository.save(country);
+        // Save the country first to ensure it exists
+        const savedCountry = await this.countryRepository.save(country);
+
+        // Handle borders if provided
+        if (borders) {
+            // Delete all existing borders for this country
+            await this.borderRepository.delete({
+                country1_code: code,
+            });
+            await this.borderRepository.delete({
+                country2_code: code,
+            });
+
+            // Create new border entries
+            const borderEntities = borders.map(borderCode => new Border(code, borderCode));
+            await this.borderRepository.save(borderEntities);
+        }
+
+        return this.findOne(savedCountry.code);
     }
 
     async delete(code: string): Promise<void> {
@@ -134,6 +179,8 @@ export class CountryService {
         const updatedCountries: Country[] = [];
 
         await this.countryRepository.manager.transaction(async transactionalEntityManager => {
+            await this.updateBorders(updates, transactionalEntityManager);
+
             for (const code of countryCodes) {
                 const update = updates[code];
                 const country = countryMap.get(code);
@@ -213,10 +260,17 @@ export class CountryService {
                             }
                             country.languages = update.languages.map(l => languageMap.get(l)!);
                             break;
+                        case 'borders':
+                            if (!Array.isArray(update.borders) || !update.borders.every(b => typeof b === 'string')) {
+                                throw new BadRequestException(
+                                    `Invalid type for 'borders' in country code '${code}'. Expected an array of strings.`,
+                                );
+                            }
+                            // Borders are handled in bulk above
+                            break;
                         default:
-                            // Throw if the field is not allowed
                             throw new BadRequestException(
-                                `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, isLandlocked, currencies, languages`,
+                                `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, isLandlocked, currencies, languages, borders`,
                             );
                     }
                 }
@@ -232,7 +286,64 @@ export class CountryService {
             where: { code: In(countryCodes) },
             relations: ['currencies', 'languages'],
         });
-        return result;
+
+        // Fetch all borders for these countries
+        const borders = await this.borderRepository.find({
+            where: [{ country1_code: In(countryCodes) }, { country2_code: In(countryCodes) }],
+        });
+
+        return result.map(country => ({
+            ...country,
+            borders: borders
+                .filter(border => border.country1_code === country.code || border.country2_code === country.code)
+                .map(border => (border.country1_code === country.code ? border.country2_code : border.country1_code)),
+        }));
+    }
+
+    private async updateBorders(updates: CountryBulkUpdateDto, transactionalEntityManager: EntityManager) {
+        // Collect all unique country codes from updates
+        const countryCodes = Object.keys(updates);
+        if (countryCodes.length === 0) {
+            return;
+        }
+
+        // First collect all border updates
+        const borderUpdates = new Map<string, string[]>();
+        for (const code of countryCodes) {
+            const update = updates[code];
+            if (update.borders && Array.isArray(update.borders)) {
+                borderUpdates.set(code, update.borders);
+            }
+        }
+
+        // Delete all existing borders for countries being updated
+        if (borderUpdates.size > 0) {
+            await transactionalEntityManager.delete(Border, [
+                { country1Code: In(Array.from(borderUpdates.keys())) },
+                { country2Code: In(Array.from(borderUpdates.keys())) },
+            ]);
+        }
+
+        // Create all new border entries, ensuring we don't create duplicates
+        const newBorders: Border[] = [];
+        const processedPairs = new Set<string>();
+
+        for (const [code, borders] of borderUpdates) {
+            for (const borderCode of borders) {
+                // Create a unique key for this border pair, ensuring consistent ordering
+                const pairKey = [code, borderCode].sort().join('-');
+
+                // Only add if we haven't processed this pair yet
+                if (!processedPairs.has(pairKey)) {
+                    newBorders.push(new Border(code, borderCode));
+                    processedPairs.add(pairKey);
+                }
+            }
+        }
+
+        if (newBorders.length > 0) {
+            await transactionalEntityManager.save(Border, newBorders);
+        }
     }
 
     /**

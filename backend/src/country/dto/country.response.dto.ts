@@ -38,4 +38,12 @@ export class CountryResponseDto {
         type: Boolean,
     })
     isLandlocked?: boolean;
+
+    @ApiProperty({
+        description:
+            'An array of country codes representing the countries that share a land border with this country. The relationship is symmetric (if country A borders country B, then country B borders country A).',
+        type: [String],
+        example: ['MEX', 'CAN'],
+    })
+    borders: string[];
 }

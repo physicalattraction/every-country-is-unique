@@ -9,6 +9,7 @@ import { CountryModule } from '../country.module';
 import { CountryResponseDto } from '../dto/country.response.dto';
 import { CurrencyDto } from '../dto/currency.dto';
 import { LanguageDto } from '../dto/language.dto';
+import { Border } from '../entities/border.entity';
 import { Country } from '../entities/country.entity';
 import { Currency } from '../entities/currency.entity';
 import { Language } from '../entities/language.entity';
@@ -21,6 +22,7 @@ describe('CountryController', () => {
     let currencyRepository: Repository<Currency>;
     let languageRepository: Repository<Language>;
     let dataSource: DataSource;
+    let countryService: CountryService;
 
     const TEST_API_KEY = 'test-api-key';
 
@@ -32,12 +34,12 @@ describe('CountryController', () => {
                     type: 'better-sqlite3',
                     database: ':memory:',
                     dropSchema: true,
-                    entities: [Country, Currency, Language],
+                    entities: [Country, Currency, Language, Border],
                     synchronize: true,
                     logging: false,
                 }),
                 CountryModule,
-                TypeOrmModule.forFeature([Country, Currency, Language]),
+                TypeOrmModule.forFeature([Country, Currency, Language, Border]),
                 ConfigModule.forRoot({
                     isGlobal: true,
                 }),
@@ -72,6 +74,11 @@ describe('CountryController', () => {
                     useFactory: dataSource => dataSource.getRepository(Language),
                     inject: [getDataSourceToken()],
                 },
+                {
+                    provide: Border,
+                    useFactory: dataSource => dataSource.getRepository(Border),
+                    inject: [getDataSourceToken()],
+                },
             ],
         }).compile();
 
@@ -82,6 +89,7 @@ describe('CountryController', () => {
         currencyRepository = module.get<Repository<Currency>>(getRepositoryToken(Currency));
         languageRepository = module.get<Repository<Language>>(getRepositoryToken(Language));
         dataSource = module.get<DataSource>(getDataSourceToken());
+        countryService = module.get<CountryService>(CountryService);
     });
 
     afterEach(async () => {
@@ -170,6 +178,7 @@ describe('CountryController', () => {
             // Verify database state
             const savedCountry = await countryRepository.findOne({ where: { code: 'USA' } });
             expect(savedCountry).toBeDefined();
+            expect(savedCountry.code).toBe('USA');
             expect(savedCountry.name).toBe('United States');
         });
 
@@ -342,6 +351,7 @@ describe('CountryController', () => {
                     populationDensity: 33.9,
                     currencies: ['USD'],
                     languages: ['eng'],
+                    borders: ['CAN'],
                 },
                 CAN: {
                     name: 'Canada',
@@ -351,6 +361,7 @@ describe('CountryController', () => {
                     populationDensity: 3.8,
                     currencies: ['CAD'],
                     languages: ['eng', 'fra'],
+                    borders: ['USA'],
                 },
             };
 
@@ -378,6 +389,7 @@ describe('CountryController', () => {
                 population: 333000000,
                 area: 9834000,
                 populationDensity: 33.9,
+                borders: ['CAN'],
             });
             expect(usa.currencies).toHaveLength(1);
             expect(usa.currencies[0].code).toBe('USD');
@@ -390,6 +402,7 @@ describe('CountryController', () => {
                 population: 38000000,
                 area: 9985000,
                 populationDensity: 3.8,
+                borders: ['USA'],
             });
             expect(can.currencies).toHaveLength(1);
             expect(can.currencies[0].code).toBe('CAD');
@@ -397,21 +410,18 @@ describe('CountryController', () => {
             expect(can.languages.map((l: LanguageDto) => l.code).sort()).toEqual(['eng', 'fra']);
 
             // Verify database state
-            const updatedUSA = await countryRepository.findOne({
-                where: { code: 'USA' },
-                relations: ['currencies', 'languages'],
-            });
+            const updatedUSA = await countryService.findOne('USA');
             expect(updatedUSA.name).toBe('United States of America');
             expect(updatedUSA.population).toBe(333000000);
             expect(updatedUSA.currencies.map((c: CurrencyDto) => c.code)).toEqual(['USD']);
             expect(updatedUSA.languages.map((l: LanguageDto) => l.code)).toEqual(['eng']);
-            const updatedCAN = await countryRepository.findOne({
-                where: { code: 'CAN' },
-                relations: ['currencies', 'languages'],
-            });
+            expect(updatedUSA.borders).toEqual(['CAN']);
+
+            const updatedCAN = await countryService.findOne('CAN');
             expect(updatedCAN.population).toBe(38000000);
             expect(updatedCAN.currencies.map((c: CurrencyDto) => c.code)).toEqual(['CAD']);
             expect(updatedCAN.languages.map((l: LanguageDto) => l.code).sort()).toEqual(['eng', 'fra']);
+            expect(updatedCAN.borders).toEqual(['USA']);
         });
 
         it('should return 401 if API key is missing', async () => {
@@ -532,6 +542,57 @@ describe('CountryController', () => {
                 .send(updates)
                 .expect(400);
             expect(response.body.message).toContain('Invalid type for');
+        });
+
+        it('should update borders correctly when changing them in bulk', async () => {
+            // Arrange
+            await countryRepository.save([
+                { code: 'USA', name: 'United States', flag: '🇺🇸', population: 1000 },
+                { code: 'CAN', name: 'Canada', flag: '🇨🇦', population: 1000 },
+                { code: 'MEX', name: 'Mexico', flag: '🇲🇽', population: 1000 },
+            ]);
+
+            // Set initial borders: USA borders CAN
+            await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send({ USA: { borders: ['CAN'] }, CAN: { borders: ['USA'] } })
+                .expect(200);
+
+            // Verify initial state
+            let usa = await countryService.findOne('USA');
+            let can = await countryService.findOne('CAN');
+            let mex = await countryService.findOne('MEX');
+            expect(usa.borders).toEqual(['CAN']);
+            expect(can.borders).toEqual(['USA']);
+            expect(mex.borders).toEqual([]);
+
+            // Bulk update: USA borders only MEX
+            const updates = {
+                USA: { borders: ['MEX'] },
+                MEX: { borders: ['USA'] },
+            };
+            const response = await request(app.getHttpServer())
+                .put('/countries/bulk')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(updates)
+                .expect(200);
+
+            // Assert response
+            const updatedUSA = response.body.find((c: CountryResponseDto) => c.code === 'USA');
+            const updatedCAN = response.body.find((c: CountryResponseDto) => c.code === 'CAN');
+            const updatedMEX = response.body.find((c: CountryResponseDto) => c.code === 'MEX');
+            expect(updatedUSA.borders).toEqual(['MEX']);
+            expect(updatedMEX.borders).toEqual(['USA']);
+            expect(updatedCAN).toBeUndefined();
+
+            // Verify database state
+            usa = await countryService.findOne('USA');
+            can = await countryService.findOne('CAN');
+            mex = await countryService.findOne('MEX');
+            expect(usa.borders).toEqual(['MEX']);
+            expect(mex.borders).toEqual(['USA']);
+            expect(can.borders).toEqual([]);
         });
     });
 });

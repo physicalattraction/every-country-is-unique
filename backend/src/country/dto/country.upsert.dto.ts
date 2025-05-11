@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Length } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Matches } from 'class-validator';
 
 export class CountryUpsertDto {
     @ApiProperty({ description: 'The three-letter country code' })
     @IsString()
-    @Length(3, 3)
+    @Matches(/^[A-Z]{3}$/, { message: 'Country code must be exactly 3 uppercase letters' })
     code: string;
 
     @ApiProperty({ description: 'The name of the country' })
@@ -54,4 +54,17 @@ export class CountryUpsertDto {
     @IsOptional()
     @IsBoolean()
     isLandlocked?: boolean;
+
+    @ApiProperty({
+        description:
+            'An array of country codes representing the countries that share a land border with this country. The relationship is symmetric (if country A borders country B, then country B borders country A).',
+        type: [String],
+        example: ['MEX', 'CAN'],
+        required: false,
+    })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    @Matches(/^[A-Z]{3}$/, { each: true, message: 'Each border country code must be exactly 3 uppercase letters' })
+    borders?: string[];
 }
