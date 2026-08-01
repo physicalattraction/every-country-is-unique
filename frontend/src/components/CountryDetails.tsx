@@ -67,7 +67,7 @@ export function CountryDetails({ country, isLoading, error, allCountries }: Coun
           {(country.populationDensity !== undefined && country.populationDensity !== null) && (
             <li className="flex items-center space-x-2">
               <span className="font-medium">Population Density:</span>
-              <span>{country.populationDensity.toLocaleString()} people/km²</span>
+              <span>{Math.round(country.populationDensity).toLocaleString()} people/km²</span>
             </li>
           )}
         </ul>
@@ -117,7 +117,9 @@ export function CountryDetails({ country, isLoading, error, allCountries }: Coun
             <span>{country.isLandlocked ? 'Yes' : 'No'}</span>
           </li>
           <li className="flex flex-col space-y-1">
-            <span className="font-medium">Bordering Countries:</span>
+            <span className="font-medium">
+              Bordering Countries ({country.borders?.length ?? 0}):
+            </span>
             {country.borders && country.borders.length > 0 ? (
               <ul className="list-disc list-inside pl-2">
                 {getCountryNames(country.borders).map((name) => (
