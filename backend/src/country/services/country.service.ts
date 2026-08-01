@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, Repository } from 'typeorm';
+import { EntityManager, FindManyOptions, FindOptionsWhere, In, Repository } from 'typeorm';
 
-import { CountryBulkUpdateDto, CountryBulkUpdateItemDto } from '../dto/country.bulk-update.dto';
+import { CountryBulkUpdateDto } from '../dto/country.bulk-update.dto';
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryQuickResponseDto } from '../dto/country.quick-response.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
@@ -11,6 +11,19 @@ import { Border } from '../entities/border.entity';
 import { Country } from '../entities/country.entity';
 import { Currency } from '../entities/currency.entity';
 import { Language } from '../entities/language.entity';
+
+/** Shared field patch applied by both upsert and bulk update */
+type CountryFieldUpdate = {
+    name?: string;
+    flag?: string;
+    population?: number;
+    area?: number;
+    populationDensity?: number;
+    isLandlocked?: boolean;
+    currencies?: string[];
+    languages?: string[];
+    borders?: string[];
+};
 
 @Injectable()
 export class CountryService {
@@ -65,71 +78,20 @@ export class CountryService {
     }
 
     async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
-        const {
-            code,
-            name,
-            flag,
-            currencyCodes,
-            languageCodes,
-            population,
-            area,
-            populationDensity,
-            isLandlocked,
-            borders,
-        } = dto;
+        const update: CountryFieldUpdate = {
+            name: dto.name,
+            flag: dto.flag,
+            population: dto.population,
+            area: dto.area,
+            populationDensity: dto.populationDensity,
+            isLandlocked: dto.isLandlocked,
+            currencies: dto.currencyCodes,
+            languages: dto.languageCodes,
+            borders: dto.borders,
+        };
 
-        // Find or create the country
-        let country = await this.countryRepository.findOne({
-            where: { code },
-            relations: ['currencies', 'languages'],
-        });
-
-        if (!country) {
-            country = this.countryRepository.create({ code, name, flag });
-        } else {
-            country.name = name;
-            country.flag = flag;
-        }
-
-        // Set new optional fields if provided
-        if (population !== undefined) country.population = population;
-        if (area !== undefined) country.area = area;
-        if (populationDensity !== undefined) country.populationDensity = populationDensity;
-        if (isLandlocked !== undefined) country.isLandlocked = isLandlocked;
-
-        // Handle currencies if provided
-        if (currencyCodes) {
-            country.currencies = await this.currencyRepository.findBy({
-                code: In(currencyCodes),
-            });
-        }
-
-        // Handle languages if provided
-        if (languageCodes) {
-            country.languages = await this.languageRepository.findBy({
-                code: In(languageCodes),
-            });
-        }
-
-        // Save the country first to ensure it exists
-        const savedCountry = await this.countryRepository.save(country);
-
-        // Handle borders if provided
-        if (borders) {
-            // Delete all existing borders for this country
-            await this.borderRepository.delete({
-                country1_code: code,
-            });
-            await this.borderRepository.delete({
-                country2_code: code,
-            });
-
-            // Create new border entries
-            const borderEntities = borders.map(borderCode => new Border(code, borderCode));
-            await this.borderRepository.save(borderEntities);
-        }
-
-        return this.findOne(savedCountry.code);
+        const [result] = await this.applyCountryUpdates({ [dto.code]: update }, { createMissing: true });
+        return result;
     }
 
     async delete(code: string): Promise<void> {
@@ -161,47 +123,69 @@ export class CountryService {
     }
 
     async bulkUpdateCountries(updates: CountryBulkUpdateDto): Promise<CountryResponseDto[]> {
-        const countryCodes = Object.keys(updates);
-        const countryMap = await this.getCountryMapFromUpdates(updates);
-        const currencyMap = await this.getCodeMap(
-            this.currencyRepository,
-            this.collectCodes(updates, update => update.currencies),
-            'currency',
-        );
-        const languageMap = await this.getCodeMap(
-            this.languageRepository,
-            this.collectCodes(updates, update => update.languages),
-            'language',
-        );
+        return this.applyCountryUpdates(updates);
+    }
 
-        const updatedCountries: Country[] = [];
+    private async applyCountryUpdates(
+        updates: Record<string, CountryFieldUpdate>,
+        options: { createMissing?: boolean } = {},
+    ): Promise<CountryResponseDto[]> {
+        const countryCodes = Object.keys(updates);
+        if (countryCodes.length === 0) {
+            return [];
+        }
+
+        const [countryMap, currencyMap, languageMap] = await Promise.all([
+            this.loadCountryMap(updates, options.createMissing === true),
+            this.getCodeMap(
+                this.currencyRepository,
+                this.collectCodes(updates, update => update.currencies),
+                'currency',
+            ),
+            this.getCodeMap(
+                this.languageRepository,
+                this.collectCodes(updates, update => update.languages),
+                'language',
+            ),
+        ]);
 
         await this.countryRepository.manager.transaction(async transactionalEntityManager => {
             await this.updateBorders(updates, transactionalEntityManager);
 
+            const updatedCountries: Country[] = [];
             for (const code of countryCodes) {
-                const update = updates[code];
-                const country = countryMap.get(code)!;
-
-                if (update.name !== undefined) country.name = update.name;
-                if (update.flag !== undefined) country.flag = update.flag;
-                if (update.population !== undefined) country.population = update.population;
-                if (update.area !== undefined) country.area = update.area;
-                if (update.populationDensity !== undefined) country.populationDensity = update.populationDensity;
-                if (update.isLandlocked !== undefined) country.isLandlocked = update.isLandlocked;
-                if (update.currencies !== undefined) {
-                    country.currencies = update.currencies.map(c => currencyMap.get(c)!);
-                }
-                if (update.languages !== undefined) {
-                    country.languages = update.languages.map(l => languageMap.get(l)!);
-                }
-
+                const country = this.requireMapped(countryMap, code, 'country');
+                this.applyFieldUpdate(country, updates[code], currencyMap, languageMap);
                 updatedCountries.push(country);
             }
 
             await transactionalEntityManager.save(Country, updatedCountries);
         });
 
+        return this.loadCountryResponses(countryCodes);
+    }
+
+    private applyFieldUpdate(
+        country: Country,
+        update: CountryFieldUpdate,
+        currencyMap: Map<string, Currency>,
+        languageMap: Map<string, Language>,
+    ): void {
+        if (update.name !== undefined) country.name = update.name;
+        if (update.flag !== undefined) country.flag = update.flag;
+        if (update.population !== undefined) country.population = update.population;
+        if (update.area !== undefined) country.area = update.area;
+        if (update.populationDensity !== undefined) country.populationDensity = update.populationDensity;
+        if (update.isLandlocked !== undefined) country.isLandlocked = update.isLandlocked;
+        if (update.currencies !== undefined) {
+            country.currencies = update.currencies.map(code => this.requireMapped(currencyMap, code, 'currency'));
+        }
+        if (update.languages !== undefined) {
+            country.languages = update.languages.map(code => this.requireMapped(languageMap, code, 'language'));
+        }
+    }
+
+    private async loadCountryResponses(countryCodes: string[]): Promise<CountryResponseDto[]> {
         const result = await this.countryRepository.find({
             where: { code: In(countryCodes) },
             relations: ['currencies', 'languages'],
@@ -224,8 +208,8 @@ export class CountryService {
     }
 
     private collectCodes(
-        updates: CountryBulkUpdateDto,
-        picker: (update: CountryBulkUpdateItemDto) => string[] | undefined,
+        updates: Record<string, CountryFieldUpdate>,
+        picker: (update: CountryFieldUpdate) => string[] | undefined,
     ): string[] {
         return Array.from(
             new Set(
@@ -241,13 +225,15 @@ export class CountryService {
         repository: Repository<T>,
         codes: string[],
         label: string,
+        findOptions: FindManyOptions<T> = {},
     ): Promise<Map<string, T>> {
         if (codes.length === 0) {
             return new Map();
         }
 
         const entities = await repository.find({
-            where: { code: In(codes) } as object,
+            ...findOptions,
+            where: { code: In(codes) } as FindOptionsWhere<T>,
         });
 
         const entityMap = new Map<string, T>();
@@ -263,26 +249,74 @@ export class CountryService {
         return entityMap;
     }
 
-    private async updateBorders(updates: CountryBulkUpdateDto, transactionalEntityManager: EntityManager) {
-        const countryCodes = Object.keys(updates);
-        if (countryCodes.length === 0) {
-            return;
+    private async loadCountryMap(
+        updates: Record<string, CountryFieldUpdate>,
+        createMissing: boolean,
+    ): Promise<Map<string, Country>> {
+        const codes = Object.keys(updates);
+        if (!createMissing) {
+            return this.getCodeMap(this.countryRepository, codes, 'country', {
+                relations: ['currencies', 'languages'],
+            });
         }
 
-        const borderUpdates = new Map<string, string[]>();
-        for (const code of countryCodes) {
+        const countries = await this.countryRepository.find({
+            where: { code: In(codes) },
+            relations: ['currencies', 'languages'],
+        });
+        const countryMap = new Map(countries.map(country => [country.code, country]));
+
+        for (const code of codes) {
+            if (countryMap.has(code)) {
+                continue;
+            }
+
             const update = updates[code];
+            if (update.name === undefined || update.flag === undefined) {
+                throw new BadRequestException(`Cannot create country ${code} without name and flag`);
+            }
+
+            countryMap.set(
+                code,
+                this.countryRepository.create({
+                    code,
+                    name: update.name,
+                    flag: update.flag,
+                }),
+            );
+        }
+
+        return countryMap;
+    }
+
+    private requireMapped<T>(map: Map<string, T>, code: string, label: string): T {
+        const value = map.get(code);
+        if (value === undefined) {
+            throw new BadRequestException(`Invalid ${label} code(s): ${code}`);
+        }
+        return value;
+    }
+
+    private async updateBorders(
+        updates: Record<string, CountryFieldUpdate>,
+        transactionalEntityManager: EntityManager,
+    ): Promise<void> {
+        const borderUpdates = new Map<string, string[]>();
+        for (const [code, update] of Object.entries(updates)) {
             if (update.borders !== undefined) {
                 borderUpdates.set(code, update.borders);
             }
         }
 
-        if (borderUpdates.size > 0) {
-            await transactionalEntityManager.delete(Border, [
-                { country1_code: In(Array.from(borderUpdates.keys())) },
-                { country2_code: In(Array.from(borderUpdates.keys())) },
-            ]);
+        if (borderUpdates.size === 0) {
+            return;
         }
+
+        const borderCountryCodes = Array.from(borderUpdates.keys());
+        await transactionalEntityManager.delete(Border, [
+            { country1_code: In(borderCountryCodes) },
+            { country2_code: In(borderCountryCodes) },
+        ]);
 
         const newBorders: Border[] = [];
         const processedPairs = new Set<string>();
@@ -301,33 +335,5 @@ export class CountryService {
         if (newBorders.length > 0) {
             await transactionalEntityManager.save(Border, newBorders);
         }
-    }
-
-    /**
-     * Collect country codes from updates, fetch countries, and validate codes
-     *
-     * @param updates - The updates to be applied to the countries
-     * @returns A map of country codes to their corresponding Country entities
-     * @throws BadRequestException if any country code is invalid
-     */
-    private async getCountryMapFromUpdates(updates: CountryBulkUpdateDto): Promise<Map<string, Country>> {
-        const codes = Object.keys(updates);
-
-        const countries = await this.countryRepository.find({
-            where: { code: In(codes) },
-            relations: ['currencies', 'languages'],
-        });
-
-        const countryMap = new Map<string, Country>();
-        for (const country of countries) {
-            countryMap.set(country.code, country);
-        }
-
-        const invalidCodes = codes.filter(code => !countryMap.has(code));
-        if (invalidCodes.length > 0) {
-            throw new BadRequestException(`Invalid country code(s): ${invalidCodes.join(', ')}`);
-        }
-
-        return countryMap;
     }
 }

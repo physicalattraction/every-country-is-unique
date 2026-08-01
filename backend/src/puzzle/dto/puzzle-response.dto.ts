@@ -27,16 +27,16 @@ export class PuzzleResponseDto {
         items: {
             type: 'array',
             items: {
-                type: 'string'
-            }
+                type: 'string',
+            },
         },
-        required: false
+        required: false,
     })
     alternativeCountries?: string[][];
 
     @ApiProperty({
         description: 'A unique key used to prevent duplicate puzzles',
-        example: 'abc123'
+        example: 'abc123',
     })
     deduplicationKey: string;
 

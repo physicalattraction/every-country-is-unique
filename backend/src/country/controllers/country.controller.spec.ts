@@ -241,6 +241,23 @@ describe('CountryController', () => {
             expect(response.body.languages[0].code).toBe('eng');
         });
 
+        it('should reject invalid currency codes', async () => {
+            const countryDto = {
+                code: 'USA',
+                name: 'United States',
+                flag: '🇺🇸',
+                currencyCodes: ['XXX'],
+            };
+
+            const response = await request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(countryDto)
+                .expect(400);
+
+            expect(response.body.message).toContain('Invalid currency code(s): XXX');
+        });
+
         it('should require API key', () => {
             const countryDto = {
                 code: 'USA',

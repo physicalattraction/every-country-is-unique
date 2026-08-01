@@ -22,7 +22,7 @@ import { PuzzleModule } from './puzzle/puzzle.module';
                 password: configService.get('DB_PASSWORD'),
                 database: configService.get('DB_NAME'),
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                synchronize: process.env.NODE_ENV !== 'production',
+                synchronize: configService.get<string>('NODE_ENV') !== 'production',
             }),
             inject: [ConfigService],
         }),
@@ -32,4 +32,4 @@ import { PuzzleModule } from './puzzle/puzzle.module';
         PuzzleModule,
     ],
 })
-export class AppModule { }
+export class AppModule {}

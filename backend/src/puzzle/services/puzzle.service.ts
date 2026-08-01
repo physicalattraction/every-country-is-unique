@@ -13,13 +13,11 @@ export class PuzzleService {
         private puzzleRepository: Repository<Puzzle>,
         @InjectRepository(Country)
         private countryRepository: Repository<Country>,
-        @InjectRepository(Clue)
-        private clueRepository: Repository<Clue>,
     ) {}
 
-    async findOne(idOrHash: number | string): Promise<Puzzle | null> {
+    async findOne(id: number): Promise<Puzzle | null> {
         return this.puzzleRepository.findOne({
-            where: typeof idOrHash === 'number' ? { id: idOrHash } : { deduplicationKey: idOrHash },
+            where: { id },
             relations: ['country', 'clues'],
         });
     }

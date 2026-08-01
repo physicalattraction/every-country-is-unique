@@ -18,14 +18,15 @@ export class UpdatePuzzleDto {
     clues: CreateClueDto[];
 
     @ApiProperty({
-        description: 'For each clue, an array of country codes that would match all other clues except this one. Each inner array must contain at least one country code.',
+        description:
+            'For each clue, an array of country codes that would match all other clues except this one. Each inner array must contain at least one country code.',
         type: 'array',
         items: {
             type: 'array',
             items: {
-                type: 'string'
-            }
-        }
+                type: 'string',
+            },
+        },
     })
     @IsArray()
     @HasMinLengthForInnerArrays()

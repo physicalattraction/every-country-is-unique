@@ -65,4 +65,4 @@ describe('ApiKeyGuard', () => {
 
         expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
     });
-}); 
+});
