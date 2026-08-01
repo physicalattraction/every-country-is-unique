@@ -22,6 +22,7 @@ Other improvement ideas
 - Use real flags instead of emojis
 - Make sources public
 - Update the source extraction repository
+- Add frontend tests (currently none; backend has Jest specs)
 
 ## Project Structure
 

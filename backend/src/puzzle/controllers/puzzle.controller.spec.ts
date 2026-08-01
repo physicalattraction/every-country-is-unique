@@ -255,6 +255,15 @@ describe('PuzzleController', () => {
         it('should return 400 for invalid puzzle id', () => {
             return request(app.getHttpServer()).get('/puzzles/invalid').expect(400);
         });
+
+        it('should return a random puzzle for id=random', async () => {
+            const puzzle = await createTestPuzzle(context);
+
+            const response = await request(app.getHttpServer()).get('/puzzles/random').expect(200);
+
+            expect(response.body.id).toBe(puzzle.id);
+            expect(response.body.country.code).toBe('QAT');
+        });
     });
 
     describe('POST /puzzles', () => {
