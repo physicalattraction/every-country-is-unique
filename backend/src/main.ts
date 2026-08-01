@@ -32,6 +32,6 @@ async function bootstrap() {
         console.warn('Could not determine git commit hash:', error);
     }
 
-    await app.listen(3001, '0.0.0.0');
+    await app.listen(process.env.PORT || 3001, '0.0.0.0');
 }
 bootstrap();
