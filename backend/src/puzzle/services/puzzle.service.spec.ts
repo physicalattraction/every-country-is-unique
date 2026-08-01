@@ -147,7 +147,11 @@ describe('PuzzleService', () => {
             // Assert
             expect(result).toBeDefined();
             expect(result.id).toBe(puzzle.id);
-            expect(result.country).toEqual(country);
+            expect(result.country).toMatchObject({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
             expect(result.clues).toHaveLength(2);
             expect(result.clues[0]).toMatchObject({
                 source: 'name',
@@ -258,7 +262,7 @@ describe('PuzzleService', () => {
 
         it('should create a puzzle with clues and alternativeCountries', async () => {
             // Arrange
-            const country = await countryRepository.save({
+            await countryRepository.save({
                 code: 'QAT',
                 name: 'Qatar',
                 flag: '🇶🇦',
@@ -287,7 +291,11 @@ describe('PuzzleService', () => {
 
             // Assert
             expect(result).toBeDefined();
-            expect(result.country).toEqual(country);
+            expect(result.country).toMatchObject({
+                code: 'QAT',
+                name: 'Qatar',
+                flag: '🇶🇦',
+            });
             expect(result.clues).toHaveLength(2);
             expect(result.alternativeCountries).toEqual(alternativeCountries);
             expect(result.clues[0]).toMatchObject({

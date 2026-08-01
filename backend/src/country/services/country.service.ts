@@ -319,8 +319,8 @@ export class CountryService {
         // Delete all existing borders for countries being updated
         if (borderUpdates.size > 0) {
             await transactionalEntityManager.delete(Border, [
-                { country1Code: In(Array.from(borderUpdates.keys())) },
-                { country2Code: In(Array.from(borderUpdates.keys())) },
+                { country1_code: In(Array.from(borderUpdates.keys())) },
+                { country2_code: In(Array.from(borderUpdates.keys())) },
             ]);
         }
 
