@@ -109,10 +109,26 @@ The API documentation is automatically generated using OpenAPI (Swagger) and can
 
 ### Backend
 - `DB_HOST`: Database host (default: 'localhost')
-- `NODE_ENV`: Environment mode (development/production)
+- `DB_PORT`: Database port (default: `5432`)
+- `DB_NAME`: Database name
+- `DB_USER`: Database user
+- `DB_PASSWORD`: Database password
+- `PORT`: HTTP listen port (default: `3001`; Railway injects this)
+- `NODE_ENV`: Environment mode (`development` / `production`)
+- `API_KEY`: Shared secret for `X-API-Key` protected write endpoints
 
 ### Frontend
 - `NEXT_PUBLIC_API_URL`: Backend API URL (default: 'http://localhost:3001')
+
+## Production Deployment
+
+Production targets:
+- **Frontend:** Vercel Hobby (Root Directory `frontend/`)
+- **API + Postgres:** Railway Hobby (service root `backend/`)
+
+Step-by-step implementation checklist: [docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md](docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md).
+
+Legacy VPS Docker/nginx flow remains in [first-deployment.md](first-deployment.md) and [regular-deployment.md](regular-deployment.md) until cutover is complete.
 
 ## Contributing
 
