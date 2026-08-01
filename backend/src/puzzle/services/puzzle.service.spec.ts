@@ -95,7 +95,7 @@ describe('PuzzleService', () => {
                 code: 'YEM',
                 name: 'Yemen',
                 flag: '🇾🇪',
-            }
+            },
         ]);
     });
 
@@ -121,7 +121,7 @@ describe('PuzzleService', () => {
             const puzzle = await puzzleRepository.save({
                 country,
                 alternativeCountries: [],
-                deduplicationKey: 'test-key'
+                deduplicationKey: 'test-key',
             });
 
             const clues = [
@@ -185,7 +185,9 @@ describe('PuzzleService', () => {
 
             // Act & Assert
             await expect(service.create('QAT', [], [], 'test-key')).rejects.toThrow(BadRequestException);
-            await expect(service.create('QAT', [], [], 'test-key')).rejects.toThrow('A puzzle must have at least one clue');
+            await expect(service.create('QAT', [], [], 'test-key')).rejects.toThrow(
+                'A puzzle must have at least one clue',
+            );
         });
 
         it('should throw error when alternativeCountries array is empty', async () => {
@@ -206,7 +208,9 @@ describe('PuzzleService', () => {
 
             // Act & Assert
             await expect(service.create('QAT', clues, [], 'test-key')).rejects.toThrow(BadRequestException);
-            await expect(service.create('QAT', clues, [], 'test-key')).rejects.toThrow('Alternative countries array must have the same length as clues array');
+            await expect(service.create('QAT', clues, [], 'test-key')).rejects.toThrow(
+                'Alternative countries array must have the same length as clues array',
+            );
         });
 
         it('should throw error when alternativeCountries array length does not match clues length', async () => {
@@ -227,12 +231,16 @@ describe('PuzzleService', () => {
 
             const alternativeCountries = [
                 ['OMN', 'UAE'],
-                ['BHR', 'KWT'],  // Extra array that doesn't match clues length
+                ['BHR', 'KWT'], // Extra array that doesn't match clues length
             ];
 
             // Act & Assert
-            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(BadRequestException);
-            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow('Alternative countries array must have the same length as clues array');
+            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(
+                BadRequestException,
+            );
+            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(
+                'Alternative countries array must have the same length as clues array',
+            );
         });
 
         it('should throw error when alternativeCountries contains empty inner array', async () => {
@@ -251,13 +259,15 @@ describe('PuzzleService', () => {
                 },
             ];
 
-            const alternativeCountries = [
-                [],
-            ];
+            const alternativeCountries = [[]];
 
             // Act & Assert
-            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(BadRequestException);
-            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow('Each inner array in alternativeCountries must contain at least one element');
+            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(
+                BadRequestException,
+            );
+            await expect(service.create('QAT', clues, alternativeCountries, 'test-key')).rejects.toThrow(
+                'Each inner array in alternativeCountries must contain at least one element',
+            );
         });
 
         it('should create a puzzle with clues and alternativeCountries', async () => {
@@ -311,9 +321,9 @@ describe('PuzzleService', () => {
         });
 
         it('should throw error for non-existent country code', async () => {
-            await expect(service.create('XXX', [{ source: 'test', key: 'test', value: 'test' }], [['OMN', 'UAE']], 'test-key')).rejects.toThrow(
-                'Country with code XXX not found',
-            );
+            await expect(
+                service.create('XXX', [{ source: 'test', key: 'test', value: 'test' }], [['OMN', 'UAE']], 'test-key'),
+            ).rejects.toThrow('Country with code XXX not found');
         });
 
         it('should throw error for invalid country codes in alternativeCountries', async () => {
@@ -323,9 +333,14 @@ describe('PuzzleService', () => {
                 flag: '🇶🇦',
             });
 
-            await expect(service.create('QAT', [{ source: 'test', key: 'test', value: 'test' }], [['INVALID', 'UAE']], 'test-key')).rejects.toThrow(
-                'Invalid country codes found: INVALID',
-            );
+            await expect(
+                service.create(
+                    'QAT',
+                    [{ source: 'test', key: 'test', value: 'test' }],
+                    [['INVALID', 'UAE']],
+                    'test-key',
+                ),
+            ).rejects.toThrow('Invalid country codes found: INVALID');
         });
 
         it('should preserve clue order', async () => {
@@ -343,7 +358,16 @@ describe('PuzzleService', () => {
             ];
 
             // Act
-            const result = await service.create('QAT', clues, [['OMN', 'UAE'], ['BHR', 'KWT'], ['SAU', 'YEM']], 'test-key');
+            const result = await service.create(
+                'QAT',
+                clues,
+                [
+                    ['OMN', 'UAE'],
+                    ['BHR', 'KWT'],
+                    ['SAU', 'YEM'],
+                ],
+                'test-key',
+            );
 
             // Assert
             expect(result.clues).toHaveLength(3);
@@ -361,8 +385,18 @@ describe('PuzzleService', () => {
             });
 
             // Act
-            const puzzle1 = await service.create('QAT', [{ source: 'test', key: 'key1', value: 'value1' }], [['OMN', 'UAE']], 'test-key-1');
-            const puzzle2 = await service.create('QAT', [{ source: 'test', key: 'key2', value: 'value2' }], [['BHR', 'KWT']], 'test-key-2');
+            const puzzle1 = await service.create(
+                'QAT',
+                [{ source: 'test', key: 'key1', value: 'value1' }],
+                [['OMN', 'UAE']],
+                'test-key-1',
+            );
+            const puzzle2 = await service.create(
+                'QAT',
+                [{ source: 'test', key: 'key2', value: 'value2' }],
+                [['BHR', 'KWT']],
+                'test-key-2',
+            );
 
             // Assert
             expect(puzzle1.id).not.toBe(puzzle2.id);
@@ -401,18 +435,17 @@ describe('PuzzleService', () => {
             // Act
             queryCounter.startCounting();
             await service.create('QAT', clues, alternativeCountries, 'test-key');
-            const queryCount = queryCounter.stopQueryCount();
 
             // Assert
             // The create operation makes 8 queries:
-            // 1. Check if puzzle with hash exists
-            // 2. Get distinct puzzle IDs for hash check
-            // 3. Get full puzzle data for hash check
-            // 4. SELECT "Country"."code" - Get all countries (including target country)
-            // 5. BEGIN TRANSACTION
-            // 6. INSERT INTO "puzzle" - Insert puzzle
-            // 7. INSERT INTO "clue" - Bulk insert clues
-            // 8. COMMIT
+            // 1. SELECT puzzle by deduplication key (distinct alias)
+            // 2. SELECT countries by requested codes (target + alternatives)
+            // 3. BEGIN TRANSACTION
+            // 4. INSERT INTO "puzzle"
+            // 5. INSERT INTO "clue"
+            // 6. COMMIT
+            // 7. SELECT puzzle by id (distinct alias)
+            // 8. SELECT full puzzle with relations
             expect(queryCounter.verifyQueryCount(8)).toBe(true);
         });
     });

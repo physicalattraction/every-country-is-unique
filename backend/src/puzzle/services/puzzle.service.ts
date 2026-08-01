@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { Country } from '../../country/entities/country.entity';
 import { Clue, IClue } from '../entities/clue.entity';
@@ -15,12 +15,12 @@ export class PuzzleService {
         private countryRepository: Repository<Country>,
         @InjectRepository(Clue)
         private clueRepository: Repository<Clue>,
-    ) { }
+    ) {}
 
-    async findOne(idOrHash: number | string): Promise<Puzzle> {
+    async findOne(idOrHash: number | string): Promise<Puzzle | null> {
         return this.puzzleRepository.findOne({
             where: typeof idOrHash === 'number' ? { id: idOrHash } : { deduplicationKey: idOrHash },
-            relations: ['country', 'clues']
+            relations: ['country', 'clues'],
         });
     }
 
@@ -31,162 +31,77 @@ export class PuzzleService {
         });
     }
 
-    async create(countryCode: string, clues: IClue[], alternativeCountries: string[][], deduplicationKey: string): Promise<Puzzle> {
-        // Check if puzzle with this deduplication key already exists, if so, return it
+    async create(
+        countryCode: string,
+        clues: IClue[],
+        alternativeCountries: string[][],
+        deduplicationKey: string,
+    ): Promise<Puzzle> {
         const existingPuzzle = await this.findOneByHash(deduplicationKey);
         if (existingPuzzle) {
             return existingPuzzle;
         }
 
-        // Validate the puzzle data
-        if (!clues?.length) {
-            throw new BadRequestException('A puzzle must have at least one clue');
-        }
+        this.validateCluesAndAlternatives(clues, alternativeCountries);
+        const country = await this.resolveCountryAndValidateAlternatives(countryCode, alternativeCountries);
 
-        if (!alternativeCountries?.length || alternativeCountries.length !== clues.length) {
-            throw new BadRequestException('Alternative countries array must have the same length as clues array');
-        }
-
-        if (alternativeCountries.some(innerArray => !innerArray?.length)) {
-            throw new BadRequestException('Each inner array in alternativeCountries must contain at least one element');
-        }
-
-        // Get all country codes in one query
-        const allCountries = await this.countryRepository.find();
-
-        // Find target country in the list
-        const country = allCountries.find(c => c.code === countryCode);
-        if (!country) {
-            throw new BadRequestException(`Country with code ${countryCode} not found`);
-        }
-
-        // Create a Set of valid country codes for O(1) lookups
-        const validCountryCodes = new Set(allCountries.map(c => c.code));
-
-        // Validate all country codes in alternativeCountries
-        const invalidCodes = new Set<string>();
-        for (const innerArray of alternativeCountries) {
-            for (const code of innerArray) {
-                if (!validCountryCodes.has(code)) {
-                    invalidCodes.add(code);
-                }
-            }
-        }
-        if (invalidCodes.size > 0) {
-            throw new BadRequestException(
-                `Invalid country codes found: ${Array.from(invalidCodes).join(', ')}`
-            );
-        }
-
-        // Use a single transaction for both puzzle and clue creation
         const savedPuzzle = await this.puzzleRepository.manager.transaction(async manager => {
-            // Save puzzle
             const puzzle = await manager.save(Puzzle, {
                 country,
                 alternativeCountries,
-                deduplicationKey
+                deduplicationKey,
             });
 
-            // Create all clue entities at once
             const clueEntities = clues.map(clue => ({
                 ...clue,
                 puzzle,
             }));
 
-            // Bulk save all clues
-            await manager
-                .createQueryBuilder()
-                .insert()
-                .into(Clue)
-                .values(clueEntities)
-                .execute();
+            await manager.createQueryBuilder().insert().into(Clue).values(clueEntities).execute();
 
             return puzzle;
         });
 
-        // Fetch the full puzzle with relations using the service method
-        return this.findOne(savedPuzzle.id);
+        const created = await this.findOne(savedPuzzle.id);
+        if (!created) {
+            throw new NotFoundException(`Puzzle with id ${savedPuzzle.id} not found after create`);
+        }
+        return created;
     }
 
     async update(id: number, countryCode: string, clues: IClue[], alternativeCountries: string[][]): Promise<Puzzle> {
-        // Validate the puzzle data
         const puzzle = await this.findOne(id);
         if (!puzzle) {
             throw new NotFoundException(`Puzzle with id ${id} not found`);
         }
 
-        if (!clues?.length) {
-            throw new BadRequestException('A puzzle must have at least one clue');
-        }
+        this.validateCluesAndAlternatives(clues, alternativeCountries);
+        const country = await this.resolveCountryAndValidateAlternatives(countryCode, alternativeCountries);
 
-        if (!alternativeCountries?.length || alternativeCountries.length !== clues.length) {
-            throw new BadRequestException('Alternative countries array must have the same length as clues array');
-        }
-
-        if (alternativeCountries.some(innerArray => !innerArray?.length)) {
-            throw new BadRequestException('Each inner array in alternativeCountries must contain at least one element');
-        }
-
-        // Get the target country and all country codes in one query
-        const [country, allCountries] = await Promise.all([
-            this.countryRepository.findOne({ where: { code: countryCode } }),
-            this.countryRepository.find({ select: ['code'] })
-        ]);
-
-        if (!country) {
-            throw new BadRequestException(`Country with code ${countryCode} not found`);
-        }
-
-        // Create a Set of valid country codes for O(1) lookups
-        const validCountryCodes = new Set(allCountries.map(c => c.code));
-
-        // Validate all country codes in alternativeCountries
-        const invalidCodes = new Set<string>();
-        for (const innerArray of alternativeCountries) {
-            for (const code of innerArray) {
-                if (!validCountryCodes.has(code)) {
-                    invalidCodes.add(code);
-                }
-            }
-        }
-
-        if (invalidCodes.size > 0) {
-            throw new BadRequestException(
-                `Invalid country codes found: ${Array.from(invalidCodes).join(', ')}`
-            );
-        }
-
-        // Use a transaction for atomic updates
         const updatedPuzzle = await this.puzzleRepository.manager.transaction(async manager => {
-            // Update puzzle
             const savedPuzzle = await manager.save(Puzzle, {
                 ...puzzle,
                 country,
-                alternativeCountries
+                alternativeCountries,
             });
 
-            // Delete existing clues
             await manager.delete(Clue, { puzzle: { id } });
 
-            // Create new clues
             const clueEntities = clues.map(clue => ({
                 ...clue,
                 puzzle: savedPuzzle,
             }));
 
-            // Bulk save all clues
-            await manager
-                .createQueryBuilder()
-                .insert()
-                .into(Clue)
-                .values(clueEntities)
-                .execute();
+            await manager.createQueryBuilder().insert().into(Clue).values(clueEntities).execute();
 
             return savedPuzzle;
         });
 
-        // Fetch the full puzzle with relations using the service method
-        return this.findOne(updatedPuzzle.id);
+        const updated = await this.findOne(updatedPuzzle.id);
+        if (!updated) {
+            throw new NotFoundException(`Puzzle with id ${updatedPuzzle.id} not found after update`);
+        }
+        return updated;
     }
 
     async delete(id: number): Promise<void> {
@@ -232,5 +147,42 @@ export class PuzzleService {
             throw new NotFoundException('No puzzle found');
         }
         return puzzle;
+    }
+
+    private validateCluesAndAlternatives(clues: IClue[], alternativeCountries: string[][]): void {
+        if (!clues?.length) {
+            throw new BadRequestException('A puzzle must have at least one clue');
+        }
+
+        if (!alternativeCountries?.length || alternativeCountries.length !== clues.length) {
+            throw new BadRequestException('Alternative countries array must have the same length as clues array');
+        }
+
+        if (alternativeCountries.some(innerArray => !innerArray?.length)) {
+            throw new BadRequestException('Each inner array in alternativeCountries must contain at least one element');
+        }
+    }
+
+    private async resolveCountryAndValidateAlternatives(
+        countryCode: string,
+        alternativeCountries: string[][],
+    ): Promise<Country> {
+        const requestedCodes = [...new Set([countryCode, ...alternativeCountries.flat()])];
+        const countries = await this.countryRepository.find({
+            where: { code: In(requestedCodes) },
+        });
+        const countriesByCode = new Map(countries.map(country => [country.code, country]));
+
+        const country = countriesByCode.get(countryCode);
+        if (!country) {
+            throw new BadRequestException(`Country with code ${countryCode} not found`);
+        }
+
+        const invalidCodes = requestedCodes.filter(code => !countriesByCode.has(code));
+        if (invalidCodes.length > 0) {
+            throw new BadRequestException(`Invalid country codes found: ${invalidCodes.join(', ')}`);
+        }
+
+        return country;
     }
 }

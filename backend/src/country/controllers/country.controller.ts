@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Put, Query, UseGuards } from '@ne
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
-import { CountryBulkUpdateDto } from '../dto/country.bulk-update.dto';
+import { CountryBulkUpdateDto, CountryBulkUpdatePipe } from '../dto/country.bulk-update.dto';
 import { CountryQueryDto } from '../dto/country.query.dto';
 import { CountryQuickResponseDto } from '../dto/country.quick-response.dto';
 import { CountryResponseDto } from '../dto/country.response.dto';
@@ -107,7 +107,7 @@ export class CountryController {
         status: 401,
         description: 'Invalid or missing API key',
     })
-    async bulkUpdate(@Body() dto: CountryBulkUpdateDto): Promise<CountryResponseDto[]> {
+    async bulkUpdate(@Body(CountryBulkUpdatePipe) dto: CountryBulkUpdateDto): Promise<CountryResponseDto[]> {
         return this.countryService.bulkUpdateCountries(dto);
     }
 }
