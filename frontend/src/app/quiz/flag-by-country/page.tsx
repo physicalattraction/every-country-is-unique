@@ -74,6 +74,20 @@ export default function FlagByCountryQuiz() {
     startNewRound(countries);
   };
 
+  useEffect(() => {
+    if (selectedAnswer === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleNextRound();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnswer, countries]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
