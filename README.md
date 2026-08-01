@@ -92,12 +92,29 @@ npm run development
 
 ### Database Seeding
 
-To populate the database with country data:
+Populate the database in three steps. The backend must be running locally (`http://localhost:3001`), and `API_KEY` in the backend env must match `ECIU_API_KEY_DEVELOPMENT` in the sibling [geogrid](https://codeberg.org/erwinrossen/geogrid) repo (`data/eciu/secrets.json`).
+
+1. **Seed base countries** (code, name, flag, currencies, languages):
+
 ```bash
 cd backend
 npm run seed
 ```
-Note that the puzzles are created from another repository through the API.
+
+2. **Add demographics and borders** from geogrid (population, area, population density, landlocked, bordering countries):
+
+```bash
+cd ../geogrid   # or your local checkout of geogrid
+PYTHONPATH=src python3 -c 'from _60_eciu_uploader.eciu_uploader import EciuUploader; EciuUploader("development").bulk_update_countries()'
+```
+
+3. **Upload puzzles** from geogrid JSON files (`data/eciu-website/puzzles/`) via the API:
+
+```bash
+PYTHONPATH=src python3 -c 'from _60_eciu_uploader.eciu_uploader import EciuUploader; EciuUploader("development").upsert_existing_puzzles()'
+```
+
+For production, use `EciuUploader("production")` instead (targets `https://api.everycountryisunique.com` with `ECIU_API_KEY_PRODUCTION`).
 
 ## API Documentation
 
