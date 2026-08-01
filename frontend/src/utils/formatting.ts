@@ -1,5 +1,4 @@
-import { Clue } from '@/services/puzzleService';
-import { CountryResponseDto } from '@/services/types';
+import { Clue, CountryResponseDto } from '@/services/types';
 
 export function formatNumber(value: string): string {
     const number = Number(value);
