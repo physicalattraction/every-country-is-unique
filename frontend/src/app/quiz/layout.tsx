@@ -21,7 +21,7 @@ export default function QuizLayout({
           <div className="flex space-x-4 overflow-x-auto">
             <Link
               href="/quiz/every-country-is-unique"
-              className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${pathname === '/quiz/every-country-is-unique'
+              className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${pathname.startsWith('/quiz/every-country-is-unique')
                 ? 'text-blue-600 border-blue-600'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
                 }`}
