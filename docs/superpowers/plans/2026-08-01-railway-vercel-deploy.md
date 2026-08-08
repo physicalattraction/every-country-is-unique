@@ -408,17 +408,19 @@ npm run seed
 Expected: seed script completes without connection errors.
 
 Attempted via CLI: `railway ssh --service api -i ~/.ssh/railway_ed25519 -- npm run seed`.
-Failed: `column "population" of relation "country" does not exist`. Country entity has
-`population` / `area` / `population_density` / `is_landlocked` (and likely more) that are
-not covered by existing migrations (legacy VPS likely relied on `synchronize: true`).
-Schema follow-up needed before seed/import; not blocking Task 6 health checkpoint.
+Initially failed: `column "population" of relation "country" does not exist` (entity columns missing
+from migrations; legacy VPS likely relied on `synchronize: true`).
+
+Follow-up (2026-08-08): added migration `1754665200000-AddCountryDemographicColumns`, applied on
+Railway, then re-ran seed successfully (`country_count=197`). Also aligned Border/Puzzle entity
+column mappings with existing migration table/column names.
 
 - [x] **Step 5: Checkpoint**
 
 Do not cut DNS yet. Keep using the Railway `*.up.railway.app` URL for API smoke tests until Task 8.
 
-Checkpoint (2026-08-08): migrations applied; `/health` and `/docs` OK on
-`https://api-production-bb07.up.railway.app`; seed blocked on missing country columns.
+Checkpoint (2026-08-08): 6 migrations applied; `/health` and `/docs` OK on
+`https://api-production-bb07.up.railway.app`; countries seeded (197 rows).
 
 ---
 
