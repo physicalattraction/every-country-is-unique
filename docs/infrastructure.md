@@ -62,7 +62,7 @@ Bare `*.vercel.app` preview origins are not allowed.
 
 ### Git deploy branches
 
-Both platforms are Git-connected. Confirm the production branch in each dashboard (or CLI) before relying on push-to-deploy. After feature work lands on `main`, production should track `main` on both Railway `api` and Vercel `frontend`.
+Both platforms are Git-connected and track `main` for production (Railway `api` source branch and Vercel `frontend` production branch). Merges to `main` trigger production deploys on both.
 
 ## Environment variables
 

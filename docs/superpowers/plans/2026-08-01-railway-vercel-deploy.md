@@ -601,9 +601,9 @@ Checklist:
 
 ## TODO (post-cutover)
 
-- [ ] **Switch Railway `api` git deploy branch from `redeployment` to `main`**
+Done 2026-08-08 after merge of [#1](https://github.com/physicalattraction/every-country-is-unique/pull/1):
 
-  Today the service watches `physicalattraction/every-country-is-unique` on branch `redeployment`, so merges to `main` do not auto-deploy. After the redeployment work is merged, point production at `main`:
+- [x] **Switch Railway `api` git deploy branch from `redeployment` to `main`**
 
   ```bash
   railway service source connect \
@@ -612,11 +612,9 @@ Checklist:
     --service api
   ```
 
-  Confirm a push/merge to `main` triggers a new successful deploy.
+  Confirmed: Railway `api` Online on merge commit `50767cc` (branch `main`); `/health` → 200.
 
-- [ ] **Switch Vercel `frontend` production branch from `redeployment` to `main`**
-
-  Today the Git-connected project `physicalattractions-projects/frontend` uses production branch `redeployment` (set 2026-08-08), so merges to `main` do not create Production deployments. After the redeployment work is merged, point production at `main`:
+- [x] **Switch Vercel `frontend` production branch from `redeployment` to `main`**
 
   ```bash
   printf '%s' '{"branch":"main"}' > /tmp/vercel_branch.json
@@ -624,6 +622,4 @@ Checklist:
     -X PATCH --input /tmp/vercel_branch.json
   ```
 
-  Or in the dashboard: Project → Settings → Environments → Production branch → `main`.
-
-  Confirm a push/merge to `main` triggers a new successful Production deploy.
+  Confirmed: `link.productionBranch` is `main`. The merge itself landed as Preview (branch still `redeployment` at merge time); Production was then promoted from the `main` deployment (`50767cc`).
