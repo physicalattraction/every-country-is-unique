@@ -1,0 +1,61 @@
+---
+description: Always use My Projects workspace and every-country-is-unique Railway project; never Doneer Effectief
+alwaysApply: true
+---
+
+# Railway Workspace and Project
+
+When using the Railway CLI for Every Country Is Unique, always target:
+
+- Workspace: **My Projects**
+- Project: **every-country-is-unique**
+
+Never use workspace **Doneer Effectief**.
+
+<rule>
+name: railway_workspace
+description: Restrict Railway CLI operations for this repo to My Projects / every-country-is-unique
+filters:
+  - type: content
+    pattern: "railway"
+  - type: event
+    pattern: "agent_response"
+
+actions:
+  - type: suggest
+    message: |
+      When running Railway CLI commands for this repository:
+
+      1. Always use workspace **My Projects** (`a09ba281-962c-4341-b008-addc8d5da79a`).
+      2. Always use project **every-country-is-unique** (`75537501-3750-4fff-8484-df9c6f93bfe2`).
+      3. Never use workspace **Doneer Effectief** (`20155642-2d3e-4f18-8b05-ab1c91f54fcb`).
+      4. Prefer the directory link created by `railway init` / `railway link`. If relinking:
+         `railway link --workspace "My Projects" --project every-country-is-unique`
+      5. When a command requires an explicit workspace in non-interactive mode, pass:
+         `--workspace "My Projects"`
+      6. Before create/deploy/variable/limit/usage commands, confirm with:
+         `railway status` or `railway whoami --json`
+
+      IDs (for reference):
+      - Workspace My Projects: `a09ba281-962c-4341-b008-addc8d5da79a`
+      - Project every-country-is-unique: `75537501-3750-4fff-8484-df9c6f93bfe2`
+      - Environment production: `62c4cd72-6499-4f87-a623-a249e9017e14`
+      - Postgres service: `e0e1f17d-94f7-4edc-ad29-736cee62d806`
+      - API service (`api`): `0cde03b8-10b2-4b97-81a3-91b5d0268a30`
+      - Doneer Effectief: do not use for this repo
+
+examples:
+  - input: |
+      railway usage limit status
+      railway up
+      railway link
+    output: |
+      railway usage limit status --workspace "My Projects"
+      railway link --workspace "My Projects" --project every-country-is-unique
+      railway status
+      # confirm Project is every-country-is-unique before deploy/variable commands
+
+metadata:
+  priority: high
+  version: 1.1
+</rule>

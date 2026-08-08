@@ -270,17 +270,21 @@ EOF
 - Consumes: GitHub (or Codeberg) repo connected to Railway; Nest env names `DB_*`, `API_KEY`, `NODE_ENV`, `PORT`
 - Produces: Public HTTP URL for Nest + private Postgres network reachable via `DB_HOST`
 
-- [ ] **Step 1: Account and spend limit (human)**
+- [x] **Step 1: Account and spend limit (human)**
 
 1. Sign in at https://railway.app on Hobby plan.
 2. Open project settings → set a **spend limit** of about `$10`–`$15`.
 
-- [ ] **Step 2: Create project and Postgres**
+Done: Hobby plan active. Workspace **My Projects** soft `$5` / hard `$10` compute limits set and verified via CLI.
+
+- [x] **Step 2: Create project and Postgres**
 
 1. New Project → **Add PostgreSQL**.
 2. Note the plugin variables Railway provides (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, and/or `DATABASE_URL`).
 
-- [ ] **Step 3: Add Nest service from repo**
+Done via CLI: project `every-country-is-unique` (`75537501-3750-4fff-8484-df9c6f93bfe2`) in workspace **My Projects**; Postgres service `e0e1f17d-94f7-4edc-ad29-736cee62d806` Online.
+
+- [x] **Step 3: Add Nest service from repo**
 
 1. Add service → Deploy from GitHub (or connected git remote) of `every-country-is-unique`.
 2. Set **Root Directory** to `backend`.
@@ -289,7 +293,9 @@ EOF
    - **Start Command:** `npm run start:prod`
 4. Ensure Node version is compatible with `backend/package.json` engines if set; otherwise Node 20 matches `Dockerfile` (`node:20-alpine`).
 
-- [ ] **Step 4: Wire environment variables on the Nest service**
+Done via CLI: service `api` (`0cde03b8-10b2-4b97-81a3-91b5d0268a30`) from `physicalattraction/every-country-is-unique` branch `redeployment`; root `/backend`; build/start as above (Dockerfile builder).
+
+- [x] **Step 4: Wire environment variables on the Nest service**
 
 Set these on the **API** service (map from Railway Postgres reference variables):
 
@@ -310,17 +316,25 @@ Do **not** commit secrets. Generate `API_KEY` with:
 openssl rand -hex 32
 ```
 
-- [ ] **Step 5: Deploy and wait for healthy build**
+Done via CLI (`railway variable set --service api`); `PORT` left unset; `API_KEY` generated and stored only on Railway.
+
+- [x] **Step 5: Deploy and wait for healthy build**
 
 Trigger deploy. In Railway logs, expect Nest bootstrap without TypeORM synchronize altering schema (migrations not run yet). First boot may error if tables are missing; that is expected until Task 6.
 
 If the process crashes solely because tables are missing, proceed to Task 6 migrations quickly, or temporarily confirm the process at least reaches DB connection.
 
-- [ ] **Step 6: Checkpoint**
+Done: deployment `917ab5bb-92fb-4bab-9f2a-80117369a46d` SUCCESS; Nest started (`Nest application successfully started`); TypeORM connected without synchronize. Non-fatal: `git: not found` when resolving commit hash in the image.
+
+- [x] **Step 6: Checkpoint**
 
 Record:
 - Railway public URL for the API service (e.g. `https://….up.railway.app`)
 - That Postgres is attached on the private network
+
+Checkpoint (2026-08-08):
+- API public URL: `https://api-production-bb07.up.railway.app`
+- Postgres: Online on private network (`postgres-volume`); API `DB_*` vars reference `${{Postgres.*}}`
 
 ---
 
@@ -583,3 +597,20 @@ Checklist:
 1. **Spec coverage:** PORT fix, synchronize gate, Dockerfile CMD, README pointer, Railway Postgres+Nest, migrations/health, API domain, Vercel root+env, site domains, E2E, VPS decommission — all have tasks.
 2. **Placeholders:** No TBD steps; env mapping and exact commands included.
 3. **Type consistency:** Env names match `app.module.ts` / `.env.example` (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `API_KEY`, `PORT`, `NODE_ENV`).
+
+---
+
+## TODO (post-cutover)
+
+- [ ] **Switch Railway `api` git deploy branch from `redeployment` to `main`**
+
+  Today the service watches `physicalattraction/every-country-is-unique` on branch `redeployment`, so merges to `main` do not auto-deploy. After the redeployment work is merged, point production at `main`:
+
+  ```bash
+  railway service source connect \
+    --repo physicalattraction/every-country-is-unique \
+    --branch main \
+    --service api
+  ```
+
+  Confirm a push/merge to `main` triggers a new successful deploy.
