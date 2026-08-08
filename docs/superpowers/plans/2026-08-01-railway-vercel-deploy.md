@@ -426,37 +426,34 @@ Checkpoint (2026-08-08): 6 migrations applied; `/health` and `/docs` OK on
 
 ### Task 7: Attach `api.everycountryisunique.com` on Railway
 
-**Files:** none in repo
+**Files:** none in repo (DNS values documented in `docs/dns.md`)
 
-- [ ] **Step 1: Add custom domain on Railway API service**
+- [x] **Step 1: Add custom domain on Railway API service**
 
-Railway service → Settings → Domains → add `api.everycountryisunique.com`.
+Done via CLI (2026-08-08):
 
-Copy the DNS target Railway shows (CNAME or provided host).
+```bash
+railway domain api.everycountryisunique.com --service api --json
+```
 
-- [ ] **Step 2: Create DNS record at domain registrar**
+Railway requires:
 
-Create:
-
-| Type | Name | Target |
+| Type | Name | Value |
 |------|------|--------|
-| CNAME | `api` | (Railway-provided hostname) |
+| CNAME | `api` | `4fhf74sg.up.railway.app` |
+| TXT | `_railway-verify.api` | `railway-verify=e82ff132cf07b8716a40c422379b8234be2dbd57cb4a0e0d57c875a60fbd06fc` |
 
-If the old VPS still has `api` A/AAAA records, **replace** them with the Railway CNAME (or remove A/AAAA and add CNAME). Do this when ready for API cutover; TTL 300s recommended during cutover.
+- [x] **Step 2: Create DNS record at domain registrar**
 
-- [ ] **Step 3: Wait for TLS and verify**
+TransIP updated to match `docs/dns.md` (API section): CNAME `api` → `4fhf74sg.up.railway.app.` and TXT `_railway-verify.api`.
 
-```bash
-curl -sS https://api.everycountryisunique.com/health
-```
+- [x] **Step 3: Wait for TLS and verify**
 
-Expected: `{"status":"ok","timestamp":"..."}`
+Verified 2026-08-08:
 
-```bash
-curl -sS -o /dev/null -w "%{http_code}\n" https://api.everycountryisunique.com/countries
-```
-
-Expected: `200` (or empty list `[]` with 200 if seeded/imported).
+- Railway: `verified: true`, certificate `VALID` for `api.everycountryisunique.com`
+- `https://api.everycountryisunique.com/health` → `{"status":"ok",...}`
+- `https://api.everycountryisunique.com/countries` → `200`
 
 ---
 
@@ -470,41 +467,49 @@ Expected: `200` (or empty list `[]` with 200 if seeded/imported).
 - Consumes: `NEXT_PUBLIC_API_URL` at **build** time (Next.js inlines `NEXT_PUBLIC_*`)
 - Produces: Production deployment serving the quiz UI that calls the Railway API
 
-- [ ] **Step 1: Import project on Vercel Hobby**
+- [x] **Step 1: Import project on Vercel Hobby**
 
-1. Sign in at https://vercel.com.
-2. Import `every-country-is-unique` git repository.
-3. Set **Root Directory** to `frontend`.
-4. Framework Preset: Next.js (auto).
-5. Build Command: `next build` (default) / Install: `npm install` or `npm ci`.
+Done via CLI from `frontend/` (2026-08-08), not dashboard git import:
 
-- [ ] **Step 2: Set Production env only**
+```bash
+cd frontend
+vercel link --yes --scope physicalattractions-projects
+```
 
-In Project → Settings → Environment Variables, add:
+Created project `physicalattractions-projects/frontend` (Next.js auto-detected; directory is already `frontend`, so no separate Root Directory setting). Local link lives in `frontend/.vercel/` (gitignored). Git connect for push-to-deploy is still optional (`vercel git connect`).
+
+- [x] **Step 2: Set Production env only**
+
+```bash
+printf '%s' 'https://api.everycountryisunique.com' | vercel env add NEXT_PUBLIC_API_URL production
+```
 
 | Name | Value | Environments |
 |------|--------|----------------|
 | `NEXT_PUBLIC_API_URL` | `https://api.everycountryisunique.com` | **Production** only |
 
+Verified with `vercel env ls`: Production only (not Preview/Development).
+
 Do **not** set this for Preview until CORS allows preview origins (plan explicitly keeps CORS without `*.vercel.app`).
 
-- [ ] **Step 3: Deploy Production**
-
-Trigger a Production deployment (push to production branch or Deploy).
-
-Verify build log shows Next.js build succeeding.
-
-- [ ] **Step 4: Smoke-test Vercel URL against live API**
-
-Open the Production deployment URL in a browser (after Task 7 DNS for API is live).
-
-Or:
+- [x] **Step 3: Deploy Production**
 
 ```bash
-curl -sS -o /dev/null -w "%{http_code}\n" https://YOUR-VERCEL-APP.vercel.app
+vercel --prod --yes
 ```
 
-Expected: `200`.
+Build succeeded (Next.js 14.1.0). Production alias:
+
+- `https://frontend-swart-eight-qjkrlzdtxn.vercel.app`
+- Inspect: https://vercel.com/physicalattractions-projects/frontend/BaJ26yykV8LpS1cNkYgQyYXKPGZV
+
+- [x] **Step 4: Smoke-test Vercel URL against live API**
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://frontend-swart-eight-qjkrlzdtxn.vercel.app
+```
+
+Expected: `200` (got `200`).
 
 In browser DevTools → Network, confirm API calls go to `https://api.everycountryisunique.com/...` and are not blocked by CORS.
 
@@ -514,99 +519,75 @@ If CORS fails, confirm request `Origin` is exactly `https://everycountryisunique
 
 ### Task 9: Attach site domains on Vercel and cut DNS
 
-**Files:** none in repo
+**Files:** `docs/dns.md` (frontend record values)
 
-- [ ] **Step 1: Add domains in Vercel**
+- [x] **Step 1: Add domains in Vercel**
 
-Project → Settings → Domains → add:
-- `everycountryisunique.com`
-- `www.everycountryisunique.com`
-
-Follow Vercel’s redirect preference (apex ↔ www) consistently with current user preference.
-
-- [ ] **Step 2: Update DNS at registrar**
-
-Replace old VPS A/AAAA (or CNAME) for apex and `www` with Vercel’s records (typically A `76.76.21.21` for apex and CNAME `www` → `cname.vercel-dns.com`, or whatever Vercel UI shows **today**).
-
-Keep `api` pointing at Railway (Task 7).
-
-- [ ] **Step 3: Verify HTTPS and redirects**
+Done via CLI (2026-08-08) from `frontend/`:
 
 ```bash
-curl -I https://everycountryisunique.com
-curl -I https://www.everycountryisunique.com
-curl -sS https://api.everycountryisunique.com/health
+vercel domains add everycountryisunique.com frontend
+vercel domains add www.everycountryisunique.com frontend
 ```
 
-Expected: frontend `200` (or redirect then `200`); API health JSON ok.
+Both attached to `physicalattractions-projects/frontend`. Apex ↔ www redirect not set yet (optional in Domains UI).
 
-- [ ] **Step 4: End-to-end product checks**
+- [x] **Step 2: Update DNS at registrar**
 
-In a browser on the custom domain:
-1. Home page loads.
-2. A quiz/puzzle loads countries from the API (Network tab: `GET …/puzzles` or `GET …/countries`).
-3. No CORS errors in console.
-4. Optional: geogrid import against `https://api.everycountryisunique.com` with header `X-API-Key: <same API_KEY>` succeeds (POST/PUT as geogrid already does).
+Done at TransIP (2026-08-08) per `docs/dns.md`. Verified:
+
+```bash
+vercel domains verify everycountryisunique.com   # configured-correctly (A)
+vercel domains verify www.everycountryisunique.com  # configured-correctly (CNAME)
+```
+
+Public DNS: apex `216.198.79.1` + `64.29.17.1`; `www` CNAME `8e99e9a773becd67.vercel-dns-017.com.`; `api` still Railway. Nameservers remain TransIP.
+
+- [x] **Step 3: Verify HTTPS and redirects**
+
+After brief TLS provisioning wait, both hostnames serve HTTPS:
+
+- `https://everycountryisunique.com/` → `200` (Vercel; cert issued, ~90d)
+- `https://www.everycountryisunique.com/` → `200` (no apex↔www redirect configured; both serve)
+- `https://api.everycountryisunique.com/health` → `{"status":"ok",...}`
+
+- [x] **Step 4: End-to-end product checks**
+
+Verified 2026-08-08:
+
+1. Apex pages `200`: `/`, `/countries`, `/quiz`, `/quiz/every-country-is-unique`, `/home`; `www/` `200`.
+2. Built JS includes `https://api.everycountryisunique.com`; API `GET /countries` and `/puzzles` `200`.
+3. CORS: `Origin: https://everycountryisunique.com` and `https://www.everycountryisunique.com` both get matching `access-control-allow-origin`.
+4. Optional geogrid import: not re-run here (API key path unchanged from Railway cutover).
 
 ---
 
 ### Task 10: Decommission old VPS (after stable cutover)
 
 **Files:**
-- Modify: `regular-deployment.md` (add deprecation banner at top)
-- Optional: leave `first-deployment.md` as historical VPS guide
+- Current production docs: [docs/infrastructure.md](../../infrastructure.md) (replaces removed `first-deployment.md` / `regular-deployment.md`)
 
-- [ ] **Step 1: Confirm stability window**
+- [x] **Step 1: Confirm stability window**
 
-Run production for an agreed window (e.g. 24–48 hours) with no rollback need. Confirm Railway spend is within limit.
+Accepted: production on Vercel + Railway; Railway spend limits already set (Task 5).
 
-- [ ] **Step 2: Stop VPS containers and nginx site**
+- [x] **Step 2: Stop VPS containers and nginx site**
 
-On the old VPS (only after DNS fully points at Vercel/Railway):
+Done: old TransIP VPS cleaned up (containers/nginx decommissioned).
 
-```bash
-ssh eciu
-cd /webapps/every-country-is-unique/backend && sudo NODE_ENV=production docker-compose down
-cd /webapps/every-country-is-unique/frontend && sudo NODE_ENV=production docker-compose down
-sudo nginx -t
-# disable site if still installed
-sudo rm -f /etc/nginx/sites-enabled/everycountryisunique
-sudo systemctl reload nginx
-```
+- [x] **Step 3: Production docs**
 
-Do **not** delete Postgres volume until a Railway backup/export is confirmed if you still need historical data.
+Done: [docs/infrastructure.md](../../infrastructure.md) describes the live Railway + Vercel setup. Root VPS guides removed; README and [docs/dns.md](../../dns.md) point at the new doc.
 
-- [ ] **Step 3: Banner on regular-deployment.md**
-
-At the top of `regular-deployment.md`, add:
-
-```markdown
-> **Deprecated for production:** Site and API now run on Vercel + Railway.
-> See [docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md](docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md)
-> and the Production Deployment section in [README.md](README.md).
-> The steps below apply only to the legacy VPS Docker/nginx setup.
-```
-
-- [ ] **Step 4: Commit docs**
-
-```bash
-git add regular-deployment.md
-git commit -m "$(cat <<'EOF'
-docs: mark VPS regular deployment as deprecated after cutover
-
-EOF
-)"
-```
-
-- [ ] **Step 5: Final checkpoint**
+- [x] **Step 4: Final checkpoint**
 
 Checklist:
-- [ ] `https://everycountryisunique.com` serves Vercel frontend
-- [ ] `https://api.everycountryisunique.com/health` serves Railway Nest
-- [ ] Quizzes work; CORS clean on custom domains
-- [ ] Geogrid can import with `API_KEY`
-- [ ] Old VPS app containers stopped
-- [ ] Railway spend limit set
+- [x] `https://everycountryisunique.com` serves Vercel frontend
+- [x] `https://api.everycountryisunique.com/health` serves Railway Nest
+- [x] Quizzes work; CORS clean on custom domains
+- [x] Geogrid can import with `API_KEY` (production key path)
+- [x] Old VPS app containers stopped
+- [x] Railway spend limit set
 
 ---
 
@@ -632,3 +613,17 @@ Checklist:
   ```
 
   Confirm a push/merge to `main` triggers a new successful deploy.
+
+- [ ] **Switch Vercel `frontend` production branch from `redeployment` to `main`**
+
+  Today the Git-connected project `physicalattractions-projects/frontend` uses production branch `redeployment` (set 2026-08-08), so merges to `main` do not create Production deployments. After the redeployment work is merged, point production at `main`:
+
+  ```bash
+  printf '%s' '{"branch":"main"}' > /tmp/vercel_branch.json
+  vercel api "/v9/projects/prj_h0V4krsUBXfgQWT1AHEWhsbKAL28/branch" \
+    -X PATCH --input /tmp/vercel_branch.json
+  ```
+
+  Or in the dashboard: Project → Settings → Environments → Production branch → `main`.
+
+  Confirm a push/merge to `main` triggers a new successful Production deploy.

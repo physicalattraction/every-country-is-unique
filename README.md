@@ -67,14 +67,6 @@ The applications will be available at:
 - Backend API: http://localhost:3001
 - API Documentation: http://localhost:3001/docs
 
-### First-Time Deployment Guide
-
-For detailed instructions on deploying the application to production for the first time, including initial server setup, SSL certification, and nginx configuration, see [First-Time Deployment Guide](first-deployment.md).
-
-### Regular Deployment Guide
-
-For instructions on deploying updates to the application after initial deployment, see [Regular Deployment Guide](regular-deployment.md).
-
 ### Local Development
 
 1. Backend Setup:
@@ -140,13 +132,7 @@ The API documentation is automatically generated using OpenAPI (Swagger) and can
 
 ## Production Deployment
 
-Production targets:
-- **Frontend:** Vercel Hobby (Root Directory `frontend/`)
-- **API + Postgres:** Railway Hobby (service root `backend/`)
-
-Step-by-step implementation checklist: [docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md](docs/superpowers/plans/2026-08-01-railway-vercel-deploy.md).
-
-Legacy VPS Docker/nginx flow remains in [first-deployment.md](first-deployment.md) and [regular-deployment.md](regular-deployment.md) until cutover is complete.
+Production runs on Vercel (frontend) and Railway (API + Postgres). See [docs/infrastructure.md](docs/infrastructure.md) for the current layout, env vars, and day-to-day operations. DNS records: [docs/dns.md](docs/dns.md).
 
 ## Contributing
 
