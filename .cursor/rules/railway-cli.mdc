@@ -1,20 +1,21 @@
 ---
-description: Always use My Projects workspace and every-country-is-unique Railway project; never Doneer Effectief
+description: Railway CLI conventions for ECIU (workspace, project, SSH key)
 alwaysApply: true
 ---
 
-# Railway Workspace and Project
+# Railway CLI
 
-When using the Railway CLI for Every Country Is Unique, always target:
+When using the Railway CLI for Every Country Is Unique:
 
 - Workspace: **My Projects**
 - Project: **every-country-is-unique**
+- SSH: dedicated key `~/.ssh/railway_ed25519` only
 
-Never use workspace **Doneer Effectief**.
+Never use workspace **Doneer Effectief**. Never register or reuse a GitHub (or other shared) SSH key with Railway.
 
 <rule>
-name: railway_workspace
-description: Restrict Railway CLI operations for this repo to My Projects / every-country-is-unique
+name: railway_cli
+description: Conventions for Railway CLI usage in this repo (workspace, project, SSH)
 filters:
   - type: content
     pattern: "railway"
@@ -35,6 +36,13 @@ actions:
          `--workspace "My Projects"`
       6. Before create/deploy/variable/limit/usage commands, confirm with:
          `railway status` or `railway whoami --json`
+      7. For `railway ssh`, always use the Railway-only identity file:
+         `railway ssh --service api -i ~/.ssh/railway_ed25519`
+      8. Never import or register GitHub SSH keys (or other non-Railway keys) with Railway.
+         If a foreign key appears under Registered SSH Keys, remove it:
+         `railway ssh keys remove '<fingerprint>'`
+      9. Do not generate ad-hoc Railway keys when `~/.ssh/railway_ed25519` already exists;
+         reuse that keypair.
 
       IDs (for reference):
       - Workspace My Projects: `a09ba281-962c-4341-b008-addc8d5da79a`
@@ -42,6 +50,7 @@ actions:
       - Environment production: `62c4cd72-6499-4f87-a623-a249e9017e14`
       - Postgres service: `e0e1f17d-94f7-4edc-ad29-736cee62d806`
       - API service (`api`): `0cde03b8-10b2-4b97-81a3-91b5d0268a30`
+      - SSH key: `~/.ssh/railway_ed25519` (comment `railway-eciu`)
       - Doneer Effectief: do not use for this repo
 
 examples:
@@ -49,13 +58,17 @@ examples:
       railway usage limit status
       railway up
       railway link
+      railway ssh --service api
+      railway ssh keys github
     output: |
       railway usage limit status --workspace "My Projects"
       railway link --workspace "My Projects" --project every-country-is-unique
       railway status
       # confirm Project is every-country-is-unique before deploy/variable commands
+      railway ssh --service api -i ~/.ssh/railway_ed25519
+      # do not import GitHub keys; use railway-eciu only
 
 metadata:
   priority: high
-  version: 1.1
+  version: 2.0
 </rule>

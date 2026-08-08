@@ -347,7 +347,7 @@ Checkpoint (2026-08-08):
 - Consumes: Railway shell with same `DB_*` env as the service
 - Produces: Schema matching migrations; `/health` returns 200
 
-- [ ] **Step 1: Open Railway shell for the API service**
+- [x] **Step 1: Open Railway shell for the API service**
 
 From Railway UI: service → Shell (or `railway shell` if CLI is linked).
 
@@ -359,7 +359,10 @@ echo "NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_NAME=$DB_NAME"
 
 Expected: `NODE_ENV=production` and non-empty DB host/name.
 
-- [ ] **Step 2: Run migrations**
+Done via CLI: registered Railway-only SSH key `~/.ssh/railway_ed25519`, then
+`railway ssh --service api -i ~/.ssh/railway_ed25519`. Confirmed `NODE_ENV=production` and non-empty `DB_HOST` / `DB_NAME`.
+
+- [x] **Step 2: Run migrations**
 
 From service working directory (`backend` root on Railway):
 
@@ -374,7 +377,9 @@ Expected: TypeORM applies pending migrations under `src/migrations/` without err
 - `1745008305309-AddAlternativeCountries.ts`
 - `1745008305310-AddDeduplicationKeyToPuzzle.ts`
 
-- [ ] **Step 3: Healthcheck against Railway URL**
+Done via CLI: `railway ssh --service api -i ~/.ssh/railway_ed25519 -- npm run migration:run`. All 5 migrations applied successfully.
+
+- [x] **Step 3: Healthcheck against Railway URL**
 
 ```bash
 curl -sS https://YOUR-RAILWAY-API-HOST/health
@@ -390,7 +395,9 @@ curl -sS -o /dev/null -w "%{http_code}\n" https://YOUR-RAILWAY-API-HOST/docs
 
 Expected: `200` or `301`/`302` to docs UI.
 
-- [ ] **Step 4: Optional seed countries**
+Done: `https://api-production-bb07.up.railway.app/health` → 200 `{"status":"ok",...}`; `/docs` → 200.
+
+- [x] **Step 4: Optional seed countries**
 
 If the DB is empty and you want country rows before puzzle import:
 
@@ -400,9 +407,18 @@ npm run seed
 
 Expected: seed script completes without connection errors.
 
-- [ ] **Step 5: Checkpoint**
+Attempted via CLI: `railway ssh --service api -i ~/.ssh/railway_ed25519 -- npm run seed`.
+Failed: `column "population" of relation "country" does not exist`. Country entity has
+`population` / `area` / `population_density` / `is_landlocked` (and likely more) that are
+not covered by existing migrations (legacy VPS likely relied on `synchronize: true`).
+Schema follow-up needed before seed/import; not blocking Task 6 health checkpoint.
+
+- [x] **Step 5: Checkpoint**
 
 Do not cut DNS yet. Keep using the Railway `*.up.railway.app` URL for API smoke tests until Task 8.
+
+Checkpoint (2026-08-08): migrations applied; `/health` and `/docs` OK on
+`https://api-production-bb07.up.railway.app`; seed blocked on missing country columns.
 
 ---
 
