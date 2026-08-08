@@ -143,20 +143,10 @@ async upsert(dto: CountryUpsertDto): Promise<CountryResponseDto> {
 
 #### In the bulkUpdateCountries method:
 ```typescript
-switch (key) {
-    // ... existing cases ...
-    case 'yourNewProperty':
-        if (typeof update.yourNewProperty !== 'yourExpectedType') {
-            throw new BadRequestException(
-                `Invalid type for 'yourNewProperty' in country code '${code}'. Expected yourExpectedType.`
-            );
-        }
-        country.yourNewProperty = update.yourNewProperty;
-        break;
-    default:
-        throw new BadRequestException(
-            `Invalid field '${key}' in update for country code '${code}'. Allowed fields are: name, flag, population, area, populationDensity, yourNewProperty, currencies, languages`
-        );
+// Validation of request shape/types is handled by CountryBulkUpdatePipe + CountryBulkUpdateItemDto.
+// Only assign the typed field when present:
+if (update.yourNewProperty !== undefined) {
+    country.yourNewProperty = update.yourNewProperty;
 }
 ```
 
@@ -244,16 +234,9 @@ export class CountryBulkUpdateItemDto {
     capital?: string;
 }
 
-// Service
+// Service upsert
 if (capital !== undefined) country.capital = capital;
 
-// Bulk Update
-case 'capital':
-    if (typeof update.capital !== 'string') {
-        throw new BadRequestException(
-            `Invalid type for 'capital' in country code '${code}'. Expected string.`
-        );
-    }
-    country.capital = update.capital;
-    break;
+// Service bulk update (after DTO validation)
+if (update.capital !== undefined) country.capital = update.capital;
 ```

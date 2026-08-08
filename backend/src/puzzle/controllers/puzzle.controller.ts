@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpException,
+    HttpStatus,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { ApiKeyGuard } from '../../auth/guards/api-key.guard';
@@ -11,7 +23,7 @@ import { PuzzleService } from '../services/puzzle.service';
 @ApiTags('puzzles')
 @Controller('puzzles')
 export class PuzzleController {
-    constructor(private readonly puzzleService: PuzzleService) { }
+    constructor(private readonly puzzleService: PuzzleService) {}
 
     @Get()
     @ApiOperation({
@@ -55,7 +67,7 @@ export class PuzzleController {
         description: 'The puzzle ID (integer) or "random" for a random puzzle',
         type: 'integer | string',
         enum: ['random'],
-        example: 1
+        example: 1,
     })
     @ApiResponse({
         status: 200,
@@ -104,20 +116,13 @@ export class PuzzleController {
         description: 'Invalid country code or missing clues',
     })
     async create(@Body() createPuzzleDto: CreatePuzzleDto): Promise<PuzzleResponseDto> {
-        try {
-            const puzzle = await this.puzzleService.create(
-                createPuzzleDto.countryCode,
-                createPuzzleDto.clues,
-                createPuzzleDto.alternativeCountries,
-                createPuzzleDto.deduplicationKey
-            );
-            return new PuzzleResponseDto(puzzle);
-        } catch (error) {
-            if (error.message.includes('Country with code')) {
-                throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-            }
-            throw error;
-        }
+        const puzzle = await this.puzzleService.create(
+            createPuzzleDto.countryCode,
+            createPuzzleDto.clues,
+            createPuzzleDto.alternativeCountries,
+            createPuzzleDto.deduplicationKey,
+        );
+        return new PuzzleResponseDto(puzzle);
     }
 
     @Put(':id')
@@ -141,23 +146,13 @@ export class PuzzleController {
         description: 'Invalid country code or missing clues',
     })
     async update(@Param('id') id: string, @Body() updatePuzzleDto: UpdatePuzzleDto): Promise<PuzzleResponseDto> {
-        try {
-            const puzzle = await this.puzzleService.update(
-                Number(id),
-                updatePuzzleDto.countryCode,
-                updatePuzzleDto.clues,
-                updatePuzzleDto.alternativeCountries
-            );
-            if (!puzzle) {
-                throw new HttpException('Puzzle not found', HttpStatus.NOT_FOUND);
-            }
-            return new PuzzleResponseDto(puzzle);
-        } catch (error) {
-            if (error.message.includes('Country with code')) {
-                throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-            }
-            throw error;
-        }
+        const puzzle = await this.puzzleService.update(
+            Number(id),
+            updatePuzzleDto.countryCode,
+            updatePuzzleDto.clues,
+            updatePuzzleDto.alternativeCountries,
+        );
+        return new PuzzleResponseDto(puzzle);
     }
 
     @Delete(':id')
@@ -176,13 +171,6 @@ export class PuzzleController {
         description: 'Puzzle not found',
     })
     async delete(@Param('id') id: string): Promise<void> {
-        try {
-            await this.puzzleService.delete(Number(id));
-        } catch (error) {
-            if (error.message.includes('Puzzle with id')) {
-                throw new HttpException('Puzzle not found', HttpStatus.NOT_FOUND);
-            }
-            throw error;
-        }
+        await this.puzzleService.delete(Number(id));
     }
 }

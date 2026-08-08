@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
@@ -83,6 +83,13 @@ describe('CountryController', () => {
         }).compile();
 
         app = module.createNestApplication();
+        app.useGlobalPipes(
+            new ValidationPipe({
+                whitelist: true,
+                forbidNonWhitelisted: true,
+                transform: true,
+            }),
+        );
         await app.init();
 
         countryRepository = module.get<Repository<Country>>(getRepositoryToken(Country));
@@ -232,6 +239,23 @@ describe('CountryController', () => {
             expect(response.body.currencies[0].code).toBe('USD');
             expect(response.body.languages).toHaveLength(1);
             expect(response.body.languages[0].code).toBe('eng');
+        });
+
+        it('should reject invalid currency codes', async () => {
+            const countryDto = {
+                code: 'USA',
+                name: 'United States',
+                flag: '🇺🇸',
+                currencyCodes: ['XXX'],
+            };
+
+            const response = await request(app.getHttpServer())
+                .put('/countries')
+                .set('X-API-Key', TEST_API_KEY)
+                .send(countryDto)
+                .expect(400);
+
+            expect(response.body.message).toContain('Invalid currency code(s): XXX');
         });
 
         it('should require API key', () => {
@@ -496,7 +520,7 @@ describe('CountryController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send(updates)
                 .expect(400);
-            expect(response.body.message).toContain('Expected a non-empty array of strings');
+            expect(JSON.stringify(response.body.message)).toContain('should not be empty');
         });
 
         it('should return 400 for empty languages array', async () => {
@@ -511,7 +535,7 @@ describe('CountryController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send(updates)
                 .expect(400);
-            expect(response.body.message).toContain('Expected a non-empty array of strings');
+            expect(JSON.stringify(response.body.message)).toContain('should not be empty');
         });
 
         it('should return 400 for invalid field in update object', async () => {
@@ -526,7 +550,7 @@ describe('CountryController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send(updates)
                 .expect(400);
-            expect(response.body.message).toContain('Invalid field');
+            expect(JSON.stringify(response.body.message)).toContain('should not exist');
         });
 
         it('should return 400 for invalid type for population', async () => {
@@ -541,7 +565,7 @@ describe('CountryController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send(updates)
                 .expect(400);
-            expect(response.body.message).toContain('Invalid type for');
+            expect(JSON.stringify(response.body.message)).toContain('must be a number');
         });
 
         it('should update borders correctly when changing them in bulk', async () => {

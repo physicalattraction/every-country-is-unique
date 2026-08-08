@@ -14,7 +14,7 @@ export class QueryCounter {
         },
     };
 
-    constructor(private dataSource: DataSource) { }
+    constructor(private dataSource: DataSource) {}
 
     /**
      * Start tracking queries

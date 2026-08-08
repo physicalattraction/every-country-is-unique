@@ -15,4 +15,4 @@ import { CountryService } from './services/country.service';
     providers: [CountryService, CountrySeedService],
     exports: [CountryService],
 })
-export class CountryModule { }
+export class CountryModule {}

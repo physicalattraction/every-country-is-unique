@@ -7,7 +7,13 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }),
+    );
     app.enableCors({
         origin: ['https://everycountryisunique.com', 'https://www.everycountryisunique.com', 'http://localhost:3000'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -32,6 +38,6 @@ async function bootstrap() {
         console.warn('Could not determine git commit hash:', error);
     }
 
-    await app.listen(3001, '0.0.0.0');
+    await app.listen(process.env.PORT || 3001, '0.0.0.0');
 }
 bootstrap();

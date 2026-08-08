@@ -23,4 +23,4 @@ import { PuzzleModule } from '../puzzle/puzzle.module';
         PuzzleModule,
     ],
 })
-export class OpenApiAppModule { } 
+export class OpenApiAppModule {}

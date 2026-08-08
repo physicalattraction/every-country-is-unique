@@ -1,5 +1,4 @@
-import { Clue } from '@/services/puzzleService';
-import { CountryResponseDto } from '@/services/types';
+import { Clue, CountryResponseDto } from '@/services/types';
 
 export function formatNumber(value: string): string {
     const number = Number(value);
@@ -13,6 +12,10 @@ export function formatNumber(value: string): string {
         return `${(number / 1e3).toFixed(0)} thousand`;
     }
     return number.toString();
+}
+
+function isTrueClueValue(value: string | boolean): boolean {
+    return value === true || String(value).toLowerCase() === 'true';
 }
 
 export function formatClue(clue: Clue, countries: CountryResponseDto[]): string {
@@ -35,7 +38,7 @@ export function formatClue(clue: Clue, countries: CountryResponseDto[]): string 
                 case 'nr_borders_lte':
                     return `Borders ${clue.value} or fewer countries`;
                 case 'is_landlocked':
-                    return clue.value === 'true'
+                    return isTrueClueValue(clue.value)
                         ? 'Is landlocked'
                         : 'Has access to the sea';
             }
@@ -54,7 +57,7 @@ export function formatClue(clue: Clue, countries: CountryResponseDto[]): string 
                 case 'largest_city_population_lt':
                     return `The largest city has a population less than ${formatNumber(clue.value)}`;
                 case 'capital_city_is_largest_city':
-                    return clue.value === 'true'
+                    return isTrueClueValue(clue.value)
                         ? 'The capital city is also the largest city'
                         : 'The capital city is not the largest city';
             }
@@ -91,7 +94,7 @@ export function formatClue(clue: Clue, countries: CountryResponseDto[]): string 
             }
 
         case 'FormulaOneGrandPrix':
-            return clue.value === 'true'
+            return isTrueClueValue(clue.value)
                 ? 'Has hosted a Formula One Grand Prix'
                 : 'Has never hosted a Formula One Grand Prix';
 
@@ -125,7 +128,7 @@ export function formatClue(clue: Clue, countries: CountryResponseDto[]): string 
                 case 'has_nr_letters_lte':
                     return `Its name has ${clue.value} or fewer letters`;
                 case 'consists_multiple_words':
-                    return clue.value === 'true'
+                    return isTrueClueValue(clue.value)
                         ? 'Its name consists of multiple words'
                         : 'Its name is a single word';
             }

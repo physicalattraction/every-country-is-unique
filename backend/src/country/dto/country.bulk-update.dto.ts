@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Matches } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsBoolean, IsNumber, IsOptional, IsString, Matches } from 'class-validator';
 
 export class CountryBulkUpdateItemDto {
     @ApiProperty({
@@ -54,6 +54,7 @@ export class CountryBulkUpdateItemDto {
         type: [String],
     })
     @IsArray()
+    @ArrayNotEmpty()
     @IsString({ each: true })
     @IsOptional()
     currencies?: string[];
@@ -65,6 +66,7 @@ export class CountryBulkUpdateItemDto {
         type: [String],
     })
     @IsArray()
+    @ArrayNotEmpty()
     @IsString({ each: true })
     @IsOptional()
     languages?: string[];
@@ -92,4 +94,7 @@ export class CountryBulkUpdateItemDto {
     borders?: string[];
 }
 
+/**
+ * Dictionary of three-letter country codes to partial country updates
+ */
 export type CountryBulkUpdateDto = Record<string, CountryBulkUpdateItemDto>;

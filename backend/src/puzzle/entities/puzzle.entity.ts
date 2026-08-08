@@ -16,7 +16,7 @@ export class Puzzle {
     @OneToMany(() => Clue, clue => clue.puzzle, { cascade: true })
     clues: Clue[];
 
-    @Column('simple-json', { nullable: true })
+    @Column('simple-json', { name: 'alternative_countries', nullable: true })
     alternativeCountries: string[][];
 
     @Column({ length: 32 })

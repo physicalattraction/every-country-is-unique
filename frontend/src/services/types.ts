@@ -22,14 +22,16 @@ export interface CountryResponseDto {
   borders?: string[];
 }
 
+export interface Clue {
+  source: string;
+  key: string;
+  value: string;
+}
+
 export interface PuzzleResponseDto {
   id: number;
   country: CountryResponseDto;
-  clues: {
-    source: string;
-    key: string;
-    value: string;
-  }[];
+  clues: Clue[];
   alternativeCountries: string[][];
   deduplicationKey: string;
 } 

@@ -51,8 +51,8 @@ const DEFAULT_CLUES: TestClue[] = [
 ];
 
 const DEFAULT_ALTERNATIVE_COUNTRIES: string[][] = [
-    ['OMN', 'UAE'],  // Countries that match all clues except the first one
-    ['BHR', 'KWT'],  // Countries that match all clues except the second one
+    ['OMN', 'UAE'], // Countries that match all clues except the first one
+    ['BHR', 'KWT'], // Countries that match all clues except the second one
 ];
 
 export async function createTestCountry(
@@ -72,7 +72,7 @@ export async function createTestPuzzle(
         alternativeCountries = DEFAULT_ALTERNATIVE_COUNTRIES,
         skipClues = false,
         skipCountry = false,
-        deduplicationKey = 'test-key'
+        deduplicationKey = 'test-key',
     } = options;
 
     // Create or get country
@@ -90,7 +90,7 @@ export async function createTestPuzzle(
     const puzzle = await context.puzzleRepository.save({
         country: savedCountry,
         alternativeCountries,
-        deduplicationKey
+        deduplicationKey,
     });
 
     // Create clues if needed

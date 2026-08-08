@@ -12,9 +12,7 @@ export function HasMinLengthForInnerArrays(validationOptions?: ValidationOptions
                     if (!Array.isArray(value)) {
                         return false;
                     }
-                    return value.every(innerArray =>
-                        Array.isArray(innerArray) && innerArray.length >= 1
-                    );
+                    return value.every(innerArray => Array.isArray(innerArray) && innerArray.length >= 1);
                 },
                 defaultMessage(args: ValidationArguments) {
                     return 'Each inner array in $property must contain at least one element';
@@ -22,4 +20,4 @@ export function HasMinLengthForInnerArrays(validationOptions?: ValidationOptions
             },
         });
     };
-} 
+}

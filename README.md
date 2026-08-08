@@ -22,6 +22,7 @@ Other improvement ideas
 - Use real flags instead of emojis
 - Make sources public
 - Update the source extraction repository
+- Add frontend tests (currently none; backend has Jest specs)
 
 ## Project Structure
 
@@ -66,14 +67,6 @@ The applications will be available at:
 - Backend API: http://localhost:3001
 - API Documentation: http://localhost:3001/docs
 
-### First-Time Deployment Guide
-
-For detailed instructions on deploying the application to production for the first time, including initial server setup, SSL certification, and nginx configuration, see [First-Time Deployment Guide](first-deployment.md).
-
-### Regular Deployment Guide
-
-For instructions on deploying updates to the application after initial deployment, see [Regular Deployment Guide](regular-deployment.md).
-
 ### Local Development
 
 1. Backend Setup:
@@ -92,12 +85,29 @@ npm run development
 
 ### Database Seeding
 
-To populate the database with country data:
+Populate the database in three steps. The backend must be running locally (`http://localhost:3001`), and `API_KEY` in the backend env must match `ECIU_API_KEY_DEVELOPMENT` in the sibling [geogrid](https://codeberg.org/erwinrossen/geogrid) repo (`data/eciu/secrets.json`).
+
+1. **Seed base countries** (code, name, flag, currencies, languages):
+
 ```bash
 cd backend
 npm run seed
 ```
-Note that the puzzles are created from another repository through the API.
+
+2. **Add demographics and borders** from geogrid (population, area, population density, landlocked, bordering countries):
+
+```bash
+cd ../geogrid   # or your local checkout of geogrid
+PYTHONPATH=src python3 -c 'from _60_eciu_uploader.eciu_uploader import EciuUploader; EciuUploader("development").bulk_update_countries()'
+```
+
+3. **Upload puzzles** from geogrid JSON files (`data/eciu-website/puzzles/`) via the API:
+
+```bash
+PYTHONPATH=src python3 -c 'from _60_eciu_uploader.eciu_uploader import EciuUploader; EciuUploader("development").upsert_existing_puzzles()'
+```
+
+For production, use `EciuUploader("production")` instead (targets `https://api.everycountryisunique.com` with `ECIU_API_KEY_PRODUCTION`).
 
 ## API Documentation
 
@@ -109,10 +119,20 @@ The API documentation is automatically generated using OpenAPI (Swagger) and can
 
 ### Backend
 - `DB_HOST`: Database host (default: 'localhost')
-- `NODE_ENV`: Environment mode (development/production)
+- `DB_PORT`: Database port (default: `5432`)
+- `DB_NAME`: Database name
+- `DB_USER`: Database user
+- `DB_PASSWORD`: Database password
+- `PORT`: HTTP listen port (default: `3001`; Railway injects this)
+- `NODE_ENV`: Environment mode (`development` / `production`)
+- `API_KEY`: Shared secret for `X-API-Key` protected write endpoints
 
 ### Frontend
 - `NEXT_PUBLIC_API_URL`: Backend API URL (default: 'http://localhost:3001')
+
+## Production Deployment
+
+Production runs on Vercel (frontend) and Railway (API + Postgres). See [docs/infrastructure.md](docs/infrastructure.md) for the current layout, env vars, and day-to-day operations. DNS records: [docs/dns.md](docs/dns.md).
 
 ## Contributing
 

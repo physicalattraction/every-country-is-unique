@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
@@ -84,6 +84,13 @@ describe('PuzzleController', () => {
         }).compile();
 
         app = module.createNestApplication();
+        app.useGlobalPipes(
+            new ValidationPipe({
+                whitelist: true,
+                forbidNonWhitelisted: true,
+                transform: true,
+            }),
+        );
         await app.init();
 
         context = createTestContext(
@@ -135,7 +142,7 @@ describe('PuzzleController', () => {
                 code: 'YEM',
                 name: 'Yemen',
                 flag: '🇾🇪',
-            }
+            },
         ]);
     });
 
@@ -234,9 +241,7 @@ describe('PuzzleController', () => {
     describe('GET /puzzles/:id', () => {
         it('should return a puzzle by id', async () => {
             const puzzle = await createTestPuzzle(context);
-            const response = await request(app.getHttpServer())
-                .get(`/puzzles/${puzzle.id}`)
-                .expect(200);
+            const response = await request(app.getHttpServer()).get(`/puzzles/${puzzle.id}`).expect(200);
 
             expect(response.body.id).toBe(puzzle.id);
             expect(response.body.country.code).toBe('QAT');
@@ -244,15 +249,20 @@ describe('PuzzleController', () => {
         });
 
         it('should return 404 for non-existent puzzle', () => {
-            return request(app.getHttpServer())
-                .get('/puzzles/999')
-                .expect(404);
+            return request(app.getHttpServer()).get('/puzzles/999').expect(404);
         });
 
         it('should return 400 for invalid puzzle id', () => {
-            return request(app.getHttpServer())
-                .get('/puzzles/invalid')
-                .expect(400);
+            return request(app.getHttpServer()).get('/puzzles/invalid').expect(400);
+        });
+
+        it('should return a random puzzle for id=random', async () => {
+            const puzzle = await createTestPuzzle(context);
+
+            const response = await request(app.getHttpServer()).get('/puzzles/random').expect(200);
+
+            expect(response.body.id).toBe(puzzle.id);
+            expect(response.body.country.code).toBe('QAT');
         });
     });
 
@@ -267,7 +277,7 @@ describe('PuzzleController', () => {
                 },
             ],
             alternativeCountries: [['OMN', 'UAE']],
-            deduplicationKey: 'test-hash'
+            deduplicationKey: 'test-hash',
         };
 
         it('should create a new puzzle', async () => {
@@ -303,7 +313,7 @@ describe('PuzzleController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send({
                     ...createPuzzleDto,
-                    alternativeCountries: [['INVALID', 'UAE']]
+                    alternativeCountries: [['INVALID', 'UAE']],
                 })
                 .expect(400);
         });
@@ -318,10 +328,7 @@ describe('PuzzleController', () => {
         });
 
         it('should require API key', () => {
-            return request(app.getHttpServer())
-                .post('/puzzles')
-                .send(createPuzzleDto)
-                .expect(401);
+            return request(app.getHttpServer()).post('/puzzles').send(createPuzzleDto).expect(401);
         });
 
         it('should reject invalid API key', () => {
@@ -338,7 +345,7 @@ describe('PuzzleController', () => {
             const duplicateKey = 'duplicate-key';
             const createPuzzleDtoWithKey = {
                 ...createPuzzleDto,
-                deduplicationKey: duplicateKey
+                deduplicationKey: duplicateKey,
             };
 
             // Act - Create puzzle twice with same key
@@ -371,7 +378,7 @@ describe('PuzzleController', () => {
                 },
             ],
             alternativeCountries: [['OMN', 'UAE']],
-            deduplicationKey: 'test-hash'
+            deduplicationKey: 'test-hash',
         };
 
         it('should update an existing puzzle', async () => {
@@ -385,7 +392,7 @@ describe('PuzzleController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send({
                     ...createPuzzleDto,
-                    clues: [{ source: 'updated', key: 'test', value: 'test' }]
+                    clues: [{ source: 'updated', key: 'test', value: 'test' }],
                 })
                 .expect(200);
 
@@ -417,7 +424,7 @@ describe('PuzzleController', () => {
                 .set('X-API-Key', TEST_API_KEY)
                 .send({
                     ...createPuzzleDto,
-                    alternativeCountries: [['INVALID', 'UAE']]
+                    alternativeCountries: [['INVALID', 'UAE']],
                 })
                 .expect(400);
         });
@@ -438,10 +445,7 @@ describe('PuzzleController', () => {
             // Arrange
             const puzzle = await createTestPuzzle(context);
 
-            return request(app.getHttpServer())
-                .put(`/puzzles/${puzzle.id}`)
-                .send(createPuzzleDto)
-                .expect(401);
+            return request(app.getHttpServer()).put(`/puzzles/${puzzle.id}`).send(createPuzzleDto).expect(401);
         });
 
         it('should reject invalid API key', async () => {
@@ -473,17 +477,12 @@ describe('PuzzleController', () => {
         });
 
         it('should return 404 for non-existent puzzle', async () => {
-            return request(app.getHttpServer())
-                .delete('/puzzles/999')
-                .set('X-API-Key', TEST_API_KEY)
-                .expect(404);
+            return request(app.getHttpServer()).delete('/puzzles/999').set('X-API-Key', TEST_API_KEY).expect(404);
         });
 
         it('should require API key', async () => {
             const puzzle = await createTestPuzzle(context);
-            return request(app.getHttpServer())
-                .delete(`/puzzles/${puzzle.id}`)
-                .expect(401);
+            return request(app.getHttpServer()).delete(`/puzzles/${puzzle.id}`).expect(401);
         });
 
         it('should reject invalid API key', async () => {
