@@ -1,3 +1,5 @@
+> **This project has moved** to [physicalattraction/tinkerbox](https://github.com/physicalattraction/tinkerbox), in `apps/every-country-is-unique/`. This repository is archived and no longer updated.
+
 # Every Country Is Unique
 
 A full-stack web application that provides puzzles and detailed information about countries around the world. The application consists of a NestJS backend API and a Next.js frontend, both containerized with Docker.
